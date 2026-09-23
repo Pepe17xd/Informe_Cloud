@@ -1,0 +1,8 @@
+\chapter{Flujos funcionales}
+\section{Autenticación y comunidad}
+El cliente registra una cuenta o inicia sesión en Identity y recibe un JWT. Community valida el token y relaciona el perfil local mediante el UUID \texttt{sub}; desde allí el usuario puede crear clubes, integrarse a ellos y abrir salas persistentes.
+\section{Catálogo e interacciones}
+Catalog entrega películas y metadatos. Al crear una reseña, like, watchlist o visualización, Interaction valida el token, consulta los servicios correspondientes cuando aplica y guarda el documento con su contexto.
+\section{Sesión y analítica}
+Cinema Session coordina una sesión temporal y distribuye eventos mediante WebSocket. Los contenedores de ingesta extraen las tres bases, cargan CSV a S3 y Analytics consulta Athena para entregar indicadores.
+

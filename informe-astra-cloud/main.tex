@@ -1,0 +1,48 @@
+\documentclass[11pt,a4paper]{report}
+\usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage[spanish]{babel}
+\usepackage{geometry,graphicx,float,booktabs,longtable,tabularx,array,xcolor,listings,tcolorbox,fancyhdr,microtype,enumitem,hyperref,cleveref,titlesec,ragged2e,setspace}
+\geometry{margin=2.5cm}\definecolor{utecblue}{HTML}{092B49}\hypersetup{colorlinks=true,linkcolor=utecblue,urlcolor=utecblue,citecolor=utecblue}\setstretch{1.11}\setlength{\headheight}{14pt}\setlength{\textfloatsep}{14pt plus 3pt minus 3pt}\setlength{\floatsep}{10pt plus 2pt minus 2pt}\setlength{\intextsep}{10pt plus 2pt minus 2pt}\setlength{\emergencystretch}{2em}\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}\titleclass{\chapter}{straight}\titleformat{\chapter}[hang]{\normalfont\Large\bfseries\color{utecblue}}{\thechapter}{.8em}{}\titlespacing*{\chapter}{0pt}{2ex}{.8ex}\titleformat{\section}{\normalfont\large\bfseries\color{utecblue}}{\thesection}{.7em}{}\titlespacing*{\section}{0pt}{1.4ex}{.5ex}\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{.6em}{}\titlespacing*{\subsection}{0pt}{1.1ex}{.35ex}
+\makeatletter\renewcommand*\l@chapter{\@dottedtocline{0}{0em}{2.2em}}\makeatother
+\pagestyle{fancy}\fancyhf{}\lhead{ASTRA CLOUD}\rhead{Informe técnico}\cfoot{\thepage}
+\newcommand{\Docente}{Colchado Ruíz, Geraldo}\newcommand{\IntegranteUno}{Guerrero Cedron, Antonio Jorge}\newcommand{\IntegranteDos}{Huaman Huamani, Josue Yeremi}\newcommand{\IntegranteTres}{Rosales Esteban, Antony Yonel}\newcommand{\IntegranteCuatro}{Timana Carmona, Jose Manuel}\newcommand{\IntegranteCinco}{Villalobos Jiménez, José Luis}
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,captionpos=b}
+\begin{document}
+\pagenumbering{gobble}
+\begin{titlepage}
+\centering
+\vspace*{1.15cm}
+\includegraphics[width=.25\textwidth]{assets/logo_utec.png}\par
+\vspace{.65cm}
+{\Large UNIVERSIDAD DE INGENIERÍA Y TECNOLOGÍA\par}
+{\large UTEC\par}
+\vfill
+{\large Curso: CLOUD COMPUTING\par}
+\vspace{.7cm}
+{\color{utecblue}\bfseries\LARGE DISEÑO E IMPLEMENTACIÓN DE UNA\\[.18cm]
+ARQUITECTURA CLOUD BASADA EN\\[.18cm]
+MICROSERVICIOS PARA ASTRA CLOUD\par}
+\vspace{.65cm}
+{\Large Informe Técnico del Proyecto\par}
+\vfill
+{\large\textbf{Docente}\par}
+\vspace{.14cm}
+{\large \Docente\par}
+\vspace{.45cm}
+{\large\textbf{Integrantes}\par}
+\vspace{.14cm}
+{\large
+\IntegranteUno\\[.08cm]
+\IntegranteDos\\[.08cm]
+\IntegranteTres\\[.08cm]
+\IntegranteCuatro\\[.08cm]
+\IntegranteCinco\par}
+\vfill
+{\large Lima -- Perú\par}
+{\large 2026\par}
+\end{titlepage}
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+\input{sections/01-introduccion}\input{sections/02-objetivos}\input{sections/03-descripcion}\input{sections/04-arquitectura}\input{sections/05-microservicios}\input{sections/06-persistencia}\input{sections/07-comunicacion}\input{sections/08-docker}\input{sections/09-aws}\input{sections/10-frontend}\input{sections/10-disponibilidad}\input{sections/11-ingesta}\input{sections/12-analytics}\input{sections/13-seguridad}\input{sections/14-iac}\input{sections/15-flujos}\input{sections/16-pruebas}\input{sections/17-costos}\input{sections/18-limitaciones}\input{sections/19-mejoras}\input{sections/20-conclusiones}
+\nocite{*}\bibliographystyle{plain}\bibliography{references}\end{document}

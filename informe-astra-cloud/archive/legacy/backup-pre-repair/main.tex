@@ -1,0 +1,12 @@
+\documentclass[11pt,a4paper]{report}
+\usepackage[utf8]{inputenc}\usepackage[T1]{fontenc}\usepackage[spanish]{babel}
+\usepackage{geometry,graphicx,float,booktabs,longtable,tabularx,array,xcolor,listings,tcolorbox,fancyhdr,microtype,enumitem,hyperref,cleveref}
+\geometry{margin=2.5cm}\definecolor{utecblue}{HTML}{092B49}\hypersetup{colorlinks=true,linkcolor=utecblue,urlcolor=utecblue,citecolor=utecblue}
+\pagestyle{fancy}\fancyhf{}\lhead{ASTRA CLOUD}\rhead{Informe técnico}\cfoot{\thepage}
+\newcommand{\Docente}{[Colchado Ruíz, Geraldo]}\newcommand{\IntegranteUno}{[Guerrero Cedron, Antonio Jorge]}\newcommand{\IntegranteDos}{[Huaman Huamani, Josue Yeremi]}\newcommand{\IntegranteTres}{[Timana Carmona, Jose Manuel]}\newcommand{\IntegranteCuatro}{[Villalobos Jiménez, José Luis]}\newcommand{\IntegranteCinco}{[Rosales Esteban, Antony Yonel]}
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,captionpos=b}
+\begin{document}
+\begin{titlepage}\centering\vspace*{1cm}{\Large UNIVERSIDAD DE INGENIERÍA Y TECNOLOGÍA\\UTEC\par}\vspace{1cm}\fbox{\parbox[c][2cm][c]{.5\textwidth}{\centering ESPACIO PARA LOGO UTEC}}\vfill{\large Curso: CLOUD COMPUTING\par}\vspace{.6cm}{\color{utecblue}\bfseries\LARGE DISEÑO E IMPLEMENTACIÓN DE UNA ARQUITECTURA CLOUD\\BASADA EN MICROSERVICIOS PARA ASTRA CLOUD\par}\vspace{.6cm}{\Large Informe Técnico del Proyecto\par}\vfill\begin{tabular}{rl}Docente:&\Docente\\Integrantes:&\IntegranteUno\\&\IntegranteDos\\&\IntegranteTres\\&\IntegranteCuatro\\&\IntegranteCinco\end{tabular}\vfill Lima -- Perú\\2026\end{titlepage}
+\tableofcontents\listoffigures\listoftables\clearpage
+\input{sections/01-introduccion}\input{sections/02-objetivos}\input{sections/03-descripcion}\input{sections/04-arquitectura}\input{sections/05-microservicios}\input{sections/06-persistencia}\input{sections/07-comunicacion}\input{sections/08-docker}\input{sections/09-aws}\input{sections/10-disponibilidad}\input{sections/11-ingesta}\input{sections/12-analytics}\input{sections/13-seguridad}\input{sections/14-iac}\input{sections/15-flujos}\input{sections/16-pruebas}\input{sections/17-costos}\input{sections/18-limitaciones}\input{sections/19-mejoras}\input{sections/20-conclusiones}
+\nocite{*}\bibliographystyle{plain}\bibliography{references}\end{document}

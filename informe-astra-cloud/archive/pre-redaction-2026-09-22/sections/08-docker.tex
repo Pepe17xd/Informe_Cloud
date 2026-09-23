@@ -1,0 +1,4 @@
+\chapter{Contenedorización}
+Los microservicios fueron contenerizados con Docker para mantener entornos de ejecución independientes y reproducibles. El Compose de servicios publica Catalog en 8081, Community en 8000, Interaction en 8082, Analytics en 8002, Identity en 9000 y Cinema Session en 8001, conectados mediante una red bridge común.
+Un Compose separado configura PostgreSQL 16, MySQL 8.4.6 y MongoDB 7 con volúmenes. Los tres procesos de ingesta también se distribuyen como contenedores y reciben por variables de entorno sus conexiones y destino S3.
+

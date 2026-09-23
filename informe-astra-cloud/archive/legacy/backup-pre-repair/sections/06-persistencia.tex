@@ -1,0 +1,30 @@
+\chapter{Persistencia políglota}
+\section{PostgreSQL} Catalog configura JDBC PostgreSQL e Identity define \texttt{users}. La Figura~\ref{fig:er_postgresql}, trazable en \texttt{evidence/er-postgresql-sources.md}, resume \texttt{users} (PK UUID, email único/indexado) y las entidades Catalog \texttt{movie}, \texttt{genre}, \texttt{artist}, \texttt{movie\_video\_source} y \texttt{movie\_subtitle}. No se afirma una FK interservicio no presente en código.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/er-postgresql.pdf}
+    \caption{Modelo entidad--relación de la persistencia PostgreSQL de Astra Cloud}
+    \label{fig:er_postgresql}
+\end{figure}
+La PK UUID identifica cuentas; las entidades Catalog representan el dominio cinematográfico en persistencia relacional.
+\section{MySQL} Community define \texttt{users}, \texttt{clubs}, \texttt{memberships}, \texttt{watch\_rooms} y \texttt{watch\_participants}; las FK verificadas constan en \texttt{evidence/er-mysql-sources.md}. La Figura~\ref{fig:er_mysql} representa las relaciones verificables.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/er-mysql.pdf}
+    \caption{Modelo entidad--relación de la persistencia MySQL de Astra Cloud}
+    \label{fig:er_mysql}
+\end{figure}
+\texttt{clubs.owner\_id} y \texttt{watch\_rooms.host\_user\_id} referencian usuarios; \texttt{memberships} materializa la relación N:M usuario--club.
+\section{MongoDB} Interaction usa \texttt{Review}, \texttt{Like}, \texttt{Watchlist} y \texttt{WatchHistory}. La Figura~\ref{fig:modelo_mongodb} representa snapshots embebidos; \texttt{movie\_id} y \texttt{user\_id} son números de aplicación, no \texttt{ObjectId}, según \texttt{evidence/mongodb-model-sources.md}.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/modelo-mongodb.pdf}
+    \caption{Modelo documental MongoDB del Interaction Service}
+    \label{fig:modelo_mongodb}
+\end{figure}
+Los índices compuestos únicos de Review y Like evitan repetir interacción por película y usuario.\begin{lstlisting}[caption={Documento Review derivado de review.js},label={lst:review-json}]
+{"movie_id":42,"user_id":7,"score":8,"comment":"","date":"<Date>",
+ "movie":{"id":42,"title":"...","poster_url":"..."},
+ "user":{"id":7,"username":"...","display_name":"...","avatar_url":"..."}}
+\end{lstlisting}
+\begin{table}[H]\centering\caption{Bases de datos}\begin{tabularx}{\textwidth}{llllX}\toprule Motor&Servicio&Puerto&Modelo&Justificación\\\midrule PostgreSQL&Catalog, Identity&5432 config.&Relacional&JDBC/SQLAlchemy.\\MySQL&Community&3306 config.&Relacional&Configuración MySQL.\\MongoDB&Interaction&No verificado&Documental&Mongoose.\\\bottomrule\end{tabularx}\end{table}

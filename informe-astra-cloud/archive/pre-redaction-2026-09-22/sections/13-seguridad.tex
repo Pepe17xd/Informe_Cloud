@@ -1,0 +1,8 @@
+\chapter{Seguridad}
+\section{Identidad y acceso}
+Identity concentra registro e inicio de sesión. Las contraseñas se guardan como hashes y el servicio emite JWT HS256. Community, Interaction y Cinema Session validan el token antes de ejecutar rutas protegidas, sin almacenar contraseñas del usuario.
+\section{Red y configuración}
+La plantilla define grupos de seguridad para ALB, producción y bases de datos. PostgreSQL, MySQL y MongoDB aceptan conexiones desde el grupo de producción. Secretos y contraseñas se suministran como parámetros \texttt{NoEcho} y variables de entorno; el bucket de pósters cuenta con cifrado SSE-S3.
+\section{Consideraciones}
+Para el entorno académico se definieron subredes públicas, SSH abierto y lectura pública para el bucket exclusivo de pósters. En producción corresponde restringir SSH y CORS, usar TLS y administrar secretos con Secrets Manager o SSM.
+

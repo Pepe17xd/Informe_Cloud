@@ -1,0 +1,45 @@
+services:
+  postgres_db:
+    image: postgres:16
+    container_name: catalog_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cinema_catalog
+      POSTGRES_USER: catalog_user
+      POSTGRES_PASSWORD: CatalogSecurePass2026!
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  mysql_db:
+    image: mysql:8.4.6
+    container_name: community_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: community_db
+      MYSQL_USER: community_user
+      MYSQL_PASSWORD: CommunitySecurePass2026!
+      MYSQL_ROOT_PASSWORD: RootCommunitySecurePass2026!
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mongo_db:
+    image: mongo:7
+    container_name: interaction_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: interaction_user
+      MONGO_INITDB_ROOT_PASSWORD: InteractionSecurePass2026!
+      MONGO_INITDB_DATABASE: interaction_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  postgres_data:
+  mysql_data:
+  mongo_data:

@@ -1,0 +1,5 @@
+\chapter{Conclusiones}
+ASTRA CLOUD materializa una plataforma cinematográfica distribuida mediante seis microservicios especializados. La separación entre identidad, catálogo, comunidad, interacción, sesiones y analítica permite asignar tecnologías y persistencia acordes con cada responsabilidad.
+
+La persistencia políglota integra PostgreSQL para cuentas y catálogo, MySQL para el modelo social y MongoDB para interacciones. Docker y Docker Compose hacen reproducible la ejecución; CloudFormation define VPC, EC2, API Gateway, VPC Link, ALB y S3. El flujo PostgreSQL/MySQL/MongoDB $\rightarrow$ CSV $\rightarrow$ S3 $\rightarrow$ Athena habilita consultas analíticas sin trasladar carga a las bases operacionales.
+

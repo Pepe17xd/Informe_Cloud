@@ -1,0 +1,44 @@
+# LaTeX: archivos auxiliares regenerables
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex
+*.synctex.gz
+*.synctex(busy)
+*.toc
+texput.log
+
+# Salidas locales de revisión y compilación
+informe-astra-cloud/qa/
+informe-astra-cloud/qa-final/
+informe-astra-cloud/tmp/
+informe-astra-cloud/archive/qa/
+
+# Entornos, cachés y artefactos de desarrollo
+**/venv/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/node_modules/
+**/target/
+*.py[cod]
+
+# Configuración local y secretos
+**/.env
+**/.env.*
+!**/.env.example
+*.pem
+*.key
+
+# Archivos de sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/

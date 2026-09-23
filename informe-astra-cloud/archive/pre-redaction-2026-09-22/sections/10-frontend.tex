@@ -1,0 +1,57 @@
+\chapter{Frontend web desplegado}\label{chap:frontend}
+\section{Aplicación en AWS Amplify}
+Para ASTRA CLOUD se implementó una aplicación web desplegada mediante AWS Amplify. La interfaz se entrega por HTTPS y presenta una navegación de escritorio consistente entre Inicio, Explorar, Clubes, Mis películas y las órbitas de reproducción. La Figura~\ref{fig:frontend-inicio} muestra la portada pública: combina contenido destacado, tendencias y accesos a una película o a una experiencia compartida.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.94\textwidth]{evidence/frontend/01-inicio-publico.png}
+\caption{Inicio público de ASTRA CLOUD desplegado en AWS Amplify.}
+\label{fig:frontend-inicio}
+\end{figure}
+
+El catálogo se presenta como una experiencia navegable y permite abrir el detalle de una película. En la Figura~\ref{fig:frontend-explorar} se muestra la exploración; la Figura~\ref{fig:frontend-detalle} muestra los metadatos y las acciones disponibles para la película seleccionada, incluida la creación de una órbita, el like y la watchlist. Estas acciones se muestran como capacidades protegidas de la interfaz; durante el recorrido no se ejecutaron operaciones que modificaran los datos de la cuenta de prueba.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.94\textwidth]{evidence/frontend/03-explorar.png}
+\caption{Exploración del catálogo cinematográfico desde la aplicación web.}
+\label{fig:frontend-explorar}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=.94\textwidth]{evidence/frontend/04-detalle-pelicula.png}
+\caption{Detalle de película con acciones de reproducción, órbita, like y watchlist.}
+\label{fig:frontend-detalle}
+\end{figure}
+
+\section{Comunidad y sesión compartida}
+La interfaz permite consultar clubes y ofrecer la incorporación del usuario a una comunidad, como se aprecia en la Figura~\ref{fig:frontend-clubes}. Para el consumo audiovisual compartido, la Figura~\ref{fig:frontend-sesion} integra reproductor, participantes, chat en vivo y controles de reacción. Esta pantalla corresponde al dominio Cinema Session y complementa los recursos persistentes de comunidad.
+
+\begin{figure}[H]\centering
+\includegraphics[width=.94\textwidth]{evidence/frontend/05-clubes.png}
+\caption{Listado de clubes y acceso a las acciones comunitarias.}
+\label{fig:frontend-clubes}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=.94\textwidth]{evidence/frontend/07-sesion-cine.png}
+\caption{Órbita de cine con reproductor, chat en vivo y controles de la sesión.}
+\label{fig:frontend-sesion}
+\end{figure}
+
+\section{Consumo de servicios}
+El inicio de sesión normal de la interfaz consumió \texttt{POST /api/auth/login} y, tras autenticarse, solicitó \texttt{GET /api/v1/users/me}. La carga del inicio y la exploración consumió \texttt{GET /api/catalog/movies}. La navegación por detalle, clubes y sesión confirmó la integración visual con sus dominios correspondientes. La Tabla~\ref{tab:frontend-servicios} distingue las operaciones confirmadas durante el recorrido de las capacidades expuestas por el backend; no se atribuyen a la interfaz operaciones que no se ejecutaron.
+
+\begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.22}
+\caption{Relación entre frontend y microservicios.}\label{tab:frontend-servicios}
+\begin{tabularx}{\textwidth}{p{.19\textwidth}p{.31\textwidth}Y}
+\toprule Servicio & Funcionalidad del frontend & Operaciones/API comprobadas o disponibles en la implementación \\\midrule
+Identity & Inicio de sesión & \texttt{POST /api/auth/login} comprobado en la aplicación; \texttt{POST /api/auth/register} disponible en el servicio. \\
+Catalog & Inicio, explorar y detalle de película & \texttt{GET /api/catalog/movies} comprobado; \texttt{GET /api/catalog/movies/\{publicId\}} disponible para detalle. \\
+Community & Perfil y clubes & \texttt{GET /api/v1/users/me} comprobado; \texttt{GET /api/v1/clubs} disponible para el listado de clubes. \\
+Interaction & Like, watchlist y reseñas & Acciones visibles en el detalle; \texttt{POST/DELETE /movies/\{movieId\}/like} y \texttt{GET/POST /users/\{userId\}/watchlist} están implementados. No se invocaron operaciones mutables. \\
+Cinema Session & Órbita, reproducción y chat & Interfaz de sesión recorrida; \texttt{GET/POST /api/v1/sessions} y \texttt{POST /api/v1/sessions/\{id\}/chat} están implementados. \\
+Analytics & Sin ruta de interfaz expuesta & \texttt{GET /api/v1/dashboard/kpis} y \texttt{GET /api/v1/movies/top-watched} están implementados en la API, pero no se expusieron en la navegación desplegada. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La tabla muestra que Catalog, Community, Interaction y Cinema Session disponen de pares de métodos REST en su implementación. El recorrido del frontend confirmó de forma directa el inicio de sesión y las lecturas de catálogo y perfil; la aplicación no expuso una pantalla de Analytics y las acciones que alteran datos no se ejecutaron para preservar la cuenta de prueba. Por ello, el consumo de al menos dos métodos REST desde el frontend no queda completamente demostrado para cada microservicio con este recorrido.

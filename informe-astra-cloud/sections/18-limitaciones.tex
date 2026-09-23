@@ -1,0 +1,8 @@
+\chapter{Limitaciones actuales}
+\begin{itemize}
+\item Cinema Session mantiene su estado en memoria local; para compartirlo entre más réplicas requeriría un almacén como Redis.
+\item JWT HS256 distribuye un secreto común entre los servicios que validan tokens.
+\item La plantilla no incluye Auto Scaling Group ni alta disponibilidad para la instancia de base de datos.
+\item El pipeline genera y carga CSV; la frecuencia de ejecución y los recursos Glue deben configurarse en el despliegue.
+\item El código fuente del frontend y la configuración de AWS Amplify no están incluidos en este workspace; esta limitación no afecta la disponibilidad de la aplicación web desplegada.
+\end{itemize}

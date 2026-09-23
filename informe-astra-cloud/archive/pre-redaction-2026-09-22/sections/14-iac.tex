@@ -1,0 +1,2 @@
+\chapter{Infraestructura como código}
+La infraestructura de ASTRA CLOUD se definió en \path{contenid/proycloud-infrastructure.yaml} con AWS CloudFormation. La plantilla declara red, grupos de seguridad, EC2, DNS privado, ALB, grupos destino, API Gateway con VPC Link y el bucket de medios. Sus bloques \texttt{UserData} preparan las instancias con Docker y Docker Compose, dejando versionada la topología de despliegue.

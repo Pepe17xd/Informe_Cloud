@@ -1,0 +1,57 @@
+services:
+  catalog_api:
+    image: villabos/catalog-service:v1
+    container_name: catalog_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8081:8081"
+
+  community_api:
+    image: villabos/community-service:v1
+    container_name: community_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+
+  interaction_api:
+    image: villabos/interaction-service:v1
+    container_name: interaction_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8082:8082"
+
+  analytics_api:
+    image: villabos/analytics-service:v1
+    container_name: analytics_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8002:8002"
+
+  identity_api:
+    image: villabos/identity-service:v1
+    container_name: identity_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://catalog_user:CatalogSecurePass2026!@172.31.82.75:5432/cinema_catalog
+
+    ports:
+      - "9000:9000"
+
+  cinema_session_api:
+    image: villabos/cinema-session-service:v1
+    container_name: cinema_session_api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8001:8001"
+
+networks:
+  default:
+    name: proycloud_net
+    driver: bridge
+

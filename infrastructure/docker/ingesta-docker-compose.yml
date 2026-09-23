@@ -1,0 +1,22 @@
+services:
+  ingesta_catalogo:
+    image: villabos/ingesta-catalogo:v1
+    container_name: ingesta_catalogo
+    env_file: ingesta.env
+    environment:
+      - S3_PREFIX=resultados/catalogo
+
+  ingesta_comunity:
+    image: villabos/ingesta-comunity:v1
+    container_name: ingesta_comunity
+    env_file: ingesta.env
+    environment:
+      - S3_PREFIX=resultados/comunity
+
+  ingesta_iteraction:
+    image: villabos/ingesta-iteraction:v1
+    container_name: ingesta_iteraction
+    env_file: ingesta.env
+    environment:
+      - S3_PREFIX=resultados/iteraction
+      - MONGO_DB=interaction_db

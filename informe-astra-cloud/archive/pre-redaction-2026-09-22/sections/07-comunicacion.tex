@@ -1,0 +1,4 @@
+\chapter{Comunicación entre microservicios}
+La comunicación de negocio utiliza HTTP/REST y JWT Bearer en las operaciones protegidas. Identity emite el token; Community, Interaction y Cinema Session validan su firma. Interaction consulta Catalog y Community mediante clientes HTTP configurables para validar referencias y registrar snapshots de película y usuario.
+\begin{table}[H]\centering\small\caption{Integraciones principales}\begin{tabularx}{\textwidth}{p{.21\textwidth}p{.22\textwidth}p{.16\textwidth}X}\toprule Origen&Destino&Protocolo&Propósito\\\midrule Interaction&Catalog y Community&HTTP/REST&Validación y snapshots.\\Cinema Session&Interaction&HTTP/REST&Estadísticas de película.\\Cliente&Cinema Session&WebSocket&Sincronización y chat.\\Analytics&Amazon Athena&boto3&Consultas del lago de datos.\\\bottomrule\end{tabularx}\end{table}
+

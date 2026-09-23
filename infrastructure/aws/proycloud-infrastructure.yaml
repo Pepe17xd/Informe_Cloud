@@ -1,0 +1,1098 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Astra Cloud - Infraestructura completa: VPC publica (sin NAT), ALB interno,
+  3 EC2 t3.medium (2 Prod multi-AZ + 1 DB), Route53 privado, 6 API Gateways
+  con VPC Link, y S3 publico para posters de peliculas.
+
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@2
+  com.aws.cloudformation.Context:
+    why: >
+      Proyecto escolar de arquitectura cloud. Todas las subredes son publicas
+      para evitar el costo del NAT Gateway (~$32/mes). El ALB es interno para
+      que solo los API Gateways (via VPC Link) puedan acceder a los
+      microservicios; el trafico publico nunca llega directo al ALB.
+    must:
+      - Las contrasenas de BD y JWT_SECRET NO deben quedar en texto plano;
+        se pasan como parametros NoEcho en tiempo de despliegue.
+      - El SSH (puerto 22) queda abierto a 0.0.0.0/0 deliberadamente para
+        facilitar el debugging en entorno academico. Cerrar en produccion real.
+      - El bucket de S3 es publico de lectura deliberadamente; almacena solo
+        posters de peliculas (contenido no sensible).
+      - Solo se define 1 API Gateway completo (Identity) como patron de
+        referencia. Replicar el patron para los 5 restantes antes de desplegar.
+
+Parameters:
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Description: Secret para firmar tokens JWT (minimo 32 caracteres)
+    MinLength: 16
+  DbPassword:
+    Type: String
+    NoEcho: true
+    Description: Password para PostgreSQL (Catalog/Identity)
+    MinLength: 8
+  MysqlPassword:
+    Type: String
+    NoEcho: true
+    Description: Password para MySQL (Community)
+    MinLength: 8
+  MongoPassword:
+    Type: String
+    NoEcho: true
+    Description: Password para MongoDB (Interaction)
+    MinLength: 8
+  AthenaBucket:
+    Type: String
+    Default: s3://astra-movies/athena-resultados
+    Description: Bucket S3 de resultados de Athena (formato s3://nombre/prefijo)
+  UbuntuAmiId:
+    Type: String
+    Default: ami-0b6d9d3d33ba97d99
+    Description: AMI de Ubuntu 24.04 LTS en us-east-1 (incluye docker compose plugin)
+  LabRoleName:
+    Type: String
+    Default: LabRole
+    Description: >
+      Nombre del IAM Role existente en la cuenta (en AWS Academy se llama LabRole).
+      Este rol se usa como Instance Profile para que las EC2 accedan a S3 y Athena.
+
+
+Resources:
+  # ----------------------------------------------------
+  # 0. IAM INSTANCE PROFILE (envuelve el LabRole existente)
+  # En AWS Academy no se pueden crear roles, se usa el LabRole pre-existente.
+  # ----------------------------------------------------
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${AWS::StackName}-ec2-profile"
+      Roles:
+        - !Ref LabRoleName
+
+  # ----------------------------------------------------
+  # 1. NETWORK (VPC, Subnets, IGW, Route Table)
+  # ----------------------------------------------------
+  AstraVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-VPC"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-IGW"
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref AstraVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AstraVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Public-1a"
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AstraVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [ 1, !GetAZs '' ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Public-1b"
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AstraVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-PublicRT"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  Subnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  Subnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # ----------------------------------------------------
+  # 2. SECURITY GROUPS
+  # Nota: CidrIp 0.0.0.0/0 en AlbSG y SSH es intencional
+  # para entorno academico (ver Metadata.must)
+  # ----------------------------------------------------
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - Trafico publico hacia ALB interno via API GW VPC Link"
+      VpcId: !Ref AstraVPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8000, ToPort: 8000, CidrIp: 0.0.0.0/0, Description: Community Service }
+        - { IpProtocol: tcp, FromPort: 8001, ToPort: 8001, CidrIp: 0.0.0.0/0, Description: Cinema Session Service }
+        - { IpProtocol: tcp, FromPort: 8002, ToPort: 8002, CidrIp: 0.0.0.0/0, Description: Analytics Service }
+        - { IpProtocol: tcp, FromPort: 8081, ToPort: 8081, CidrIp: 0.0.0.0/0, Description: Catalog Service }
+        - { IpProtocol: tcp, FromPort: 8082, ToPort: 8082, CidrIp: 0.0.0.0/0, Description: Interaction Service }
+        - { IpProtocol: tcp, FromPort: 9000, ToPort: 9000, CidrIp: 0.0.0.0/0, Description: Identity Service }
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ALB-SG"
+
+  ProdSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - EC2 Prod acepta trafico del ALB y SSH de admin"
+      VpcId: !Ref AstraVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          SourceSecurityGroupId: !Ref AlbSecurityGroup
+          Description: Todo trafico proveniente del ALB
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH admin - restringir en produccion real
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Prod-SG"
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub "${AWS::StackName} - EC2 DB acepta conexiones solo desde Prod SG"
+      VpcId: !Ref AstraVPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 5432, ToPort: 5432, SourceSecurityGroupId: !Ref ProdSecurityGroup, Description: PostgreSQL desde Prod }
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !Ref ProdSecurityGroup, Description: MySQL desde Prod }
+        - { IpProtocol: tcp, FromPort: 27017, ToPort: 27017, SourceSecurityGroupId: !Ref ProdSecurityGroup, Description: MongoDB desde Prod }
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-DB-SG"
+
+  # ----------------------------------------------------
+  # 3. ROUTE53 PRIVATE DNS
+  # ----------------------------------------------------
+  PrivateHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: proycloud.local
+      VPCs:
+        - VPCId: !Ref AstraVPC
+          VPCRegion: !Ref AWS::Region
+
+  DbDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PrivateHostedZone
+      Name: db.proycloud.local.
+      Type: A
+      TTL: '60'
+      ResourceRecords:
+        - !GetAtt DbInstance.PrivateIp
+
+  # ----------------------------------------------------
+  # 4. INSTANCIAS EC2
+  # DeletionPolicy: Retain omitido en instancias EC2 ya que
+  # no son recursos de datos primarios (las BDs corren en Docker
+  # con volumenes efimeros en este diseno academico).
+  # ----------------------------------------------------
+  DbInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.medium
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref UbuntuAmiId
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref DbSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-DB-VM"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          apt-get update -y
+          curl -fsSL https://get.docker.com | sh
+          systemctl enable docker
+          systemctl start docker
+          # Configurar DNS interno de AWS para que los contenedores resuelvan dominios privados
+          cat > /etc/docker/daemon.json << 'DAEMONJSON'
+          {"dns": ["10.0.0.2", "8.8.8.8"]}
+          DAEMONJSON
+          systemctl restart docker
+          mkdir -p /app && cd /app
+          cat << 'COMPOSE' > docker-compose.yml
+          services:
+            postgres:
+              image: postgres:15
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: cinema_catalog
+                POSTGRES_USER: catalog_user
+                POSTGRES_PASSWORD: ${DbPassword}
+              ports:
+                - "5432:5432"
+              volumes:
+                - pgdata:/var/lib/postgresql/data
+            mysql:
+              image: mysql:8
+              restart: unless-stopped
+              environment:
+                MYSQL_DATABASE: community_db
+                MYSQL_USER: community_user
+                MYSQL_PASSWORD: ${MysqlPassword}
+                MYSQL_ROOT_PASSWORD: ${MysqlPassword}
+              ports:
+                - "3306:3306"
+              volumes:
+                - mysqldata:/var/lib/mysql
+            mongo:
+              image: mongo:6
+              restart: unless-stopped
+              environment:
+                MONGO_INITDB_ROOT_USERNAME: interaction_user
+                MONGO_INITDB_ROOT_PASSWORD: ${MongoPassword}
+                MONGO_INITDB_DATABASE: interaction_db
+              ports:
+                - "27017:27017"
+              volumes:
+                - mongodata:/data/db
+          volumes:
+            pgdata:
+            mysqldata:
+            mongodata:
+          COMPOSE
+          docker compose up -d
+
+  ProdInstance1:
+    Type: AWS::EC2::Instance
+    DependsOn: DbDnsRecord
+    Properties:
+      InstanceType: t3.medium
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref UbuntuAmiId
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref ProdSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Prod-VM-1a"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          apt-get update -y
+          curl -fsSL https://get.docker.com | sh
+          systemctl enable docker
+          systemctl start docker
+          # DNS interno de AWS para que los contenedores resuelvan dominios privados (db.proycloud.local)
+          cat > /etc/docker/daemon.json << 'DAEMONJSON'
+          {"dns": ["10.0.0.2", "8.8.8.8"]}
+          DAEMONJSON
+          systemctl restart docker
+          mkdir -p /app && cd /app
+          cat << 'ENVEOF' > .env
+          JWT_SECRET=${JwtSecret}
+          JWT_SECRET_KEY=${JwtSecret}
+          JWT_ALGORITHM=HS256
+          DB_NAME=cinema_catalog
+          DB_USER=catalog_user
+          DB_PASSWORD=${DbPassword}
+          DB_URL=jdbc:postgresql://db.proycloud.local:5432/cinema_catalog
+          MYSQL_DATABASE=community_db
+          MYSQL_USER=community_user
+          MYSQL_PASSWORD=${MysqlPassword}
+          MYSQL_HOST=db.proycloud.local
+          MYSQL_PORT=3306
+          MONGODB_URL=mongodb://interaction_user:${MongoPassword}@db.proycloud.local:27017/interaction_db?authSource=admin
+          CATALOG_SERVICE_URL=http://catalog-api:8081
+          COMMUNITY_SERVICE_URL=http://community-api:8000
+          HTTP_TIMEOUT_MS=5000
+          AWS_REGION=${AWS::Region}
+          ATHENA_OUTPUT_BUCKET=${AthenaBucket}
+          GLUE_DB_CATALOGO=astra_analytics
+          GLUE_DB_COMUNITY=astra_analytics
+          GLUE_DB_ITERACTION=astra_analytics
+          JWT_ISSUER=identity-service
+          ENVEOF
+          cat << 'COMPOSE' > docker-compose.yml
+          services:
+            catalog-api:
+              image: villabos/catalog-service:v2
+              container_name: catalog-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8081:8081"
+            community-api:
+              image: villabos/community-service:v2
+              container_name: community-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8000:8000"
+            interaction-api:
+              image: villabos/interaction-service:v2
+              container_name: interaction-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8082:8082"
+            analytics-api:
+              image: villabos/analytics-service:v3
+              container_name: analytics-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8002:8002"
+            identity-api:
+              image: villabos/identity-service:v2
+              container_name: identity-api
+              restart: unless-stopped
+              env_file: .env
+              environment:
+                - DATABASE_URL=postgresql://catalog_user:${DbPassword}@db.proycloud.local:5432/cinema_catalog
+              ports:
+                - "9000:9000"
+            cinema-session-api:
+              image: villabos/cinema-session-service:v2
+              container_name: cinema-session-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8001:8001"
+            watchtower:
+              image: containrrr/watchtower
+              container_name: watchtower
+              restart: unless-stopped
+              volumes:
+                - /var/run/docker.sock:/var/run/docker.sock
+              command: --interval 60 --cleanup
+          COMPOSE
+          docker compose up -d
+
+  ProdInstance2:
+    Type: AWS::EC2::Instance
+    DependsOn: DbDnsRecord
+    Properties:
+      InstanceType: t3.medium
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref UbuntuAmiId
+      SubnetId: !Ref PublicSubnet2
+      SecurityGroupIds:
+        - !Ref ProdSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Prod-VM-1b"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          apt-get update -y
+          curl -fsSL https://get.docker.com | sh
+          systemctl enable docker
+          systemctl start docker
+          # DNS interno de AWS para que los contenedores resuelvan dominios privados (db.proycloud.local)
+          cat > /etc/docker/daemon.json << 'DAEMONJSON'
+          {"dns": ["10.0.0.2", "8.8.8.8"]}
+          DAEMONJSON
+          systemctl restart docker
+          mkdir -p /app && cd /app
+          cat << 'ENVEOF' > .env
+          JWT_SECRET=${JwtSecret}
+          JWT_SECRET_KEY=${JwtSecret}
+          JWT_ALGORITHM=HS256
+          DB_NAME=cinema_catalog
+          DB_USER=catalog_user
+          DB_PASSWORD=${DbPassword}
+          DB_URL=jdbc:postgresql://db.proycloud.local:5432/cinema_catalog
+          MYSQL_DATABASE=community_db
+          MYSQL_USER=community_user
+          MYSQL_PASSWORD=${MysqlPassword}
+          MYSQL_HOST=db.proycloud.local
+          MYSQL_PORT=3306
+          MONGODB_URL=mongodb://interaction_user:${MongoPassword}@db.proycloud.local:27017/interaction_db?authSource=admin
+          CATALOG_SERVICE_URL=http://catalog-api:8081
+          COMMUNITY_SERVICE_URL=http://community-api:8000
+          HTTP_TIMEOUT_MS=5000
+          AWS_REGION=${AWS::Region}
+          ATHENA_OUTPUT_BUCKET=${AthenaBucket}
+          GLUE_DB_CATALOGO=astra_analytics
+          GLUE_DB_COMUNITY=astra_analytics
+          GLUE_DB_ITERACTION=astra_analytics
+          JWT_ISSUER=identity-service
+          ENVEOF
+          cat << 'COMPOSE' > docker-compose.yml
+          services:
+            catalog-api:
+              image: villabos/catalog-service:v2
+              container_name: catalog-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8081:8081"
+            community-api:
+              image: villabos/community-service:v2
+              container_name: community-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8000:8000"
+            interaction-api:
+              image: villabos/interaction-service:v2
+              container_name: interaction-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8082:8082"
+            analytics-api:
+              image: villabos/analytics-service:v3
+              container_name: analytics-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8002:8002"
+            identity-api:
+              image: villabos/identity-service:v2
+              container_name: identity-api
+              restart: unless-stopped
+              env_file: .env
+              environment:
+                - DATABASE_URL=postgresql://catalog_user:${DbPassword}@db.proycloud.local:5432/cinema_catalog
+              ports:
+                - "9000:9000"
+            cinema-session-api:
+              image: villabos/cinema-session-service:v2
+              container_name: cinema-session-api
+              restart: unless-stopped
+              env_file: .env
+              ports:
+                - "8001:8001"
+            watchtower:
+              image: containrrr/watchtower
+              container_name: watchtower
+              restart: unless-stopped
+              volumes:
+                - /var/run/docker.sock:/var/run/docker.sock
+              command: --interval 60 --cleanup
+          COMPOSE
+          docker compose up -d
+  IngestaInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: DbDnsRecord
+    Properties:
+      InstanceType: t3.medium
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      ImageId: !Ref UbuntuAmiId
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds:
+        - !Ref ProdSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Ingesta-VM"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -e
+          apt-get update -y
+          curl -fsSL https://get.docker.com | sh
+          systemctl enable docker
+          systemctl start docker
+          # DNS interno de AWS
+          cat > /etc/docker/daemon.json << 'DAEMONJSON'
+          {"dns": ["10.0.0.2", "8.8.8.8"]}
+          DAEMONJSON
+          systemctl restart docker
+          mkdir -p /app && cd /app
+          cat << 'ENVEOF' > .env
+          PG_HOST=db.proycloud.local
+          PG_USER=catalog_user
+          PG_PASSWORD=${DbPassword}
+          PG_DB=cinema_catalog
+          PG_PORT=5432
+          MYSQL_HOST=db.proycloud.local
+          MYSQL_USER=community_user
+          MYSQL_PASSWORD=${MysqlPassword}
+          MYSQL_DB=community_db
+          MYSQL_PORT=3306
+          MONGO_URI=mongodb://interaction_user:${MongoPassword}@db.proycloud.local:27017/interaction_db?authSource=admin
+          S3_BUCKET=__ATHENA_PLACEHOLDER__
+          AWS_REGION=${AWS::Region}
+          ENVEOF
+          # Limpiar s3:// del nombre del bucket (ej. s3://mi-bucket/ruta -> mi-bucket)
+          CLEAN_BUCKET=$(echo "${AthenaBucket}" | sed -E 's|s3://([^/]+).*|\1|')
+          sed -i "s|__ATHENA_PLACEHOLDER__|$CLEAN_BUCKET|" .env
+          cat << 'COMPOSE' > docker-compose.yml
+          services:
+            ingesta_catalogo:
+              image: villabos/ingesta-catalogo:v1
+              container_name: ingesta_catalogo
+              env_file: .env
+              environment:
+                - S3_PREFIX=resultados/catalogo
+            ingesta_comunity:
+              image: villabos/ingesta-comunity:v1
+              container_name: ingesta_comunity
+              env_file: .env
+              environment:
+                - S3_PREFIX=resultados/comunity
+            ingesta_iteraction:
+              image: villabos/ingesta-iteraction:v1
+              container_name: ingesta_iteraction
+              env_file: .env
+              environment:
+                - S3_PREFIX=resultados/iteraction
+                - MONGO_DB=interaction_db
+          COMPOSE
+          
+  # ----------------------------------------------------
+  # 5. APPLICATION LOAD BALANCER (interno) + TARGET GROUPS
+  # ----------------------------------------------------
+  AstraALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AWS::StackName}-alb"
+      Scheme: internal
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !Ref AlbSecurityGroup
+
+  TGCommunity:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-community"
+      Port: 8000
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  TGCinema:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-cinema"
+      Port: 8001
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  TGAnalytics:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-analytics"
+      Port: 8002
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  TGCatalog:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-catalog"
+      Port: 8081
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  TGInteraction:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-interaction"
+      Port: 8082
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  TGIdentity:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AWS::StackName}-tg-identity"
+      Port: 9000
+      Protocol: HTTP
+      VpcId: !Ref AstraVPC
+      TargetType: instance
+      HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      Targets:
+        - Id: !Ref ProdInstance1
+        - Id: !Ref ProdInstance2
+
+  ListenerCommunity:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 8000
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGCommunity
+
+  ListenerCinema:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 8001
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGCinema
+
+  ListenerAnalytics:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 8002
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGAnalytics
+
+  ListenerCatalog:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 8081
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGCatalog
+
+  ListenerInteraction:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 8082
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGInteraction
+
+  ListenerIdentity:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AstraALB
+      Port: 9000
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TGIdentity
+
+  # ----------------------------------------------------
+  # 6. API GATEWAYS (HTTP APIs con VPC Link -> ALB Interno)
+  # Patron: Api + Integration + Route + Stage (x6 microservicios)
+  # ----------------------------------------------------
+  AstraVpcLink:
+    Type: AWS::ApiGatewayV2::VpcLink
+    Properties:
+      Name: !Sub "${AWS::StackName}-vpc-link"
+      SubnetIds:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroupIds:
+        - !Ref AlbSecurityGroup
+
+  # --- Identity (puerto 9000) ---
+  IdentityApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-IdentityAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  IdentityIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref IdentityApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerIdentity
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  IdentityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref IdentityApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${IdentityIntegration}"
+  IdentityStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref IdentityApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # --- Catalog (puerto 8081) ---
+  CatalogApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-CatalogAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  CatalogIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref CatalogApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerCatalog
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  CatalogRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref CatalogApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${CatalogIntegration}"
+  CatalogStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref CatalogApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # --- Community (puerto 8000) ---
+  CommunityApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-CommunityAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  CommunityIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref CommunityApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerCommunity
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  CommunityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref CommunityApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${CommunityIntegration}"
+  CommunityStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref CommunityApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # --- Interaction (puerto 8082) ---
+  InteractionApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-InteractionAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  InteractionIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref InteractionApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerInteraction
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  InteractionRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref InteractionApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${InteractionIntegration}"
+  InteractionStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref InteractionApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # --- Analytics (puerto 8002) ---
+  AnalyticsApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-AnalyticsAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  AnalyticsIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref AnalyticsApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerAnalytics
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  AnalyticsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref AnalyticsApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${AnalyticsIntegration}"
+  AnalyticsStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref AnalyticsApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # --- Cinema Session (puerto 8001) ---
+  CinemaApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-CinemaAPI"
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 86400
+  CinemaIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref CinemaApi
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref ListenerCinema
+      IntegrationMethod: ANY
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref AstraVpcLink
+      PayloadFormatVersion: "1.0"
+  CinemaRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref CinemaApi
+      RouteKey: "ANY /{proxy+}"
+      Target: !Sub "integrations/${CinemaIntegration}"
+  CinemaStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref CinemaApi
+      StageName: "$default"
+      AutoDeploy: true
+
+  # ----------------------------------------------------
+  # 7. S3 BUCKET PARA IMAGENES DE PELICULAS
+  # Acceso publico de lectura intencional (solo imagenes/posters)
+  # ----------------------------------------------------
+  MovieImagesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "astra-cloud-media-v2-${AWS::AccountId}"
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: ObjectWriter
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  MovieImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MovieImagesBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${MovieImagesBucket}/*"
+
+Outputs:
+  IdentityApiUrl:
+    Description: URL del API Gateway - Identity Service
+    Value: !GetAtt IdentityApi.ApiEndpoint
+  CatalogApiUrl:
+    Description: URL del API Gateway - Catalog Service
+    Value: !GetAtt CatalogApi.ApiEndpoint
+  CommunityApiUrl:
+    Description: URL del API Gateway - Community Service
+    Value: !GetAtt CommunityApi.ApiEndpoint
+  InteractionApiUrl:
+    Description: URL del API Gateway - Interaction Service
+    Value: !GetAtt InteractionApi.ApiEndpoint
+  AnalyticsApiUrl:
+    Description: URL del API Gateway - Analytics Service
+    Value: !GetAtt AnalyticsApi.ApiEndpoint
+  CinemaApiUrl:
+    Description: URL del API Gateway - Cinema Session Service
+    Value: !GetAtt CinemaApi.ApiEndpoint
+  LoadBalancerDns:
+    Description: DNS interno del Application Load Balancer
+    Value: !GetAtt AstraALB.DNSName
+  MovieImagesBucketUrl:
+    Description: URL base publica del bucket de imagenes
+    Value: !Sub "https://${MovieImagesBucket}.s3.amazonaws.com/"

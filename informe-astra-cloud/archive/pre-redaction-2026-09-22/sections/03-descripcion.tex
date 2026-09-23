@@ -1,0 +1,7 @@
+\chapter{Descripción del proyecto}
+\section{Problema y solución}
+Una plataforma cinematográfica debe gestionar películas, cuentas, comunidades, reacciones y sesiones compartidas. ASTRA CLOUD distribuye estas responsabilidades: Catalog administra metadatos audiovisuales; Identity registra cuentas y emite tokens; Community organiza perfiles, clubes y salas; Interaction registra reseñas, likes, listas e historial; Cinema Session coordina sesiones temporales; y Analytics ofrece consultas sobre datos consolidados.
+\section{Alcance}
+El workspace contiene las seis APIs de backend, sus configuraciones de contenedor, los procesos de ingesta y la plantilla de infraestructura. REST cubre las operaciones de negocio y WebSocket distribuye eventos de reproducción, membresía y chat dentro de Cinema Session.
+\section{Capa cliente}
+ASTRA CLOUD cuenta con una aplicación web desplegada mediante AWS Amplify. La interfaz ofrece inicio, exploración del catálogo, detalle de película, clubes, perfil y órbitas de visualización compartida; consume las APIs publicadas por API Gateway y los recursos estáticos de S3. El código fuente del frontend y la configuración de Amplify no están incluidos en este workspace, pero la aplicación desplegada forma parte de la implementación operativa documentada en el Capítulo~\ref{chap:frontend}.
