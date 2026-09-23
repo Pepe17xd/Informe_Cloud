@@ -1,6 +1,6 @@
 \chapter{Frontend web desplegado}\label{chap:frontend}
 \section{Aplicación en AWS Amplify}
-Para ASTRA CLOUD se implementó una aplicación web desplegada mediante AWS Amplify. La interfaz se entrega por HTTPS y permite navegar entre Inicio, Explorar, Clubes, Mis películas, Analítica y las órbitas de reproducción. La Figura~\ref{fig:frontend-inicio} muestra la portada pública, con contenido destacado, tendencias y accesos a una película o a una experiencia compartida.
+Para ASTRA CLOUD se implementó una aplicación web desplegada en AWS Amplify. La interfaz se entrega por HTTPS y tiene las secciones Inicio, Explorar, Clubes, Mis películas, Analítica y órbitas de reproducción. La Figura~\ref{fig:frontend-inicio} muestra la portada pública, con contenido destacado, tendencias y accesos a una película o a una experiencia compartida.
 
 \begin{figure}[H]\centering
 \includegraphics[width=.94\textwidth]{evidence/frontend/01-inicio-publico.png}
@@ -8,7 +8,7 @@ Para ASTRA CLOUD se implementó una aplicación web desplegada mediante AWS Ampl
 \label{fig:frontend-inicio}
 \end{figure}
 
-El catálogo permite explorar las películas y abrir su detalle. La Figura~\ref{fig:frontend-explorar} muestra la exploración y la Figura~\ref{fig:frontend-detalle}, los metadatos y las acciones disponibles para la película seleccionada, incluida la creación de una órbita, el like y la watchlist. Estas acciones son capacidades protegidas de la interfaz; durante el recorrido no se realizaron operaciones que modificaran los datos de la cuenta de prueba.
+El catálogo permite buscar películas y abrir su detalle. En las Figuras~\ref{fig:frontend-explorar} y~\ref{fig:frontend-detalle} se muestran la exploración, los metadatos y acciones como crear una órbita, dar like o agregar una película a la watchlist. Estas acciones requieren iniciar sesión. Durante las pruebas no se realizaron cambios en la cuenta utilizada.
 
 \begin{figure}[H]\centering
 \includegraphics[width=.94\textwidth]{evidence/frontend/03-explorar.png}
@@ -23,7 +23,7 @@ El catálogo permite explorar las películas y abrir su detalle. La Figura~\ref{
 \end{figure}
 
 \section{Comunidad y sesión compartida}
-La interfaz permite consultar clubes y unirse a una comunidad, como se aprecia en la Figura~\ref{fig:frontend-clubes}. Para el consumo audiovisual compartido, la Figura~\ref{fig:frontend-sesion} integra el reproductor, los participantes, el chat en vivo y los controles de reacción. Esta pantalla corresponde al dominio Cinema Session y complementa los recursos persistentes de Community.
+Desde la interfaz se pueden consultar clubes y unirse a una comunidad, como se muestra en la Figura~\ref{fig:frontend-clubes}. Para ver una película en grupo, la pantalla de la Figura~\ref{fig:frontend-sesion} reúne el reproductor, los participantes, el chat en vivo y los controles de reacción. Esta parte usa Cinema Session junto con los datos de Community.
 
 \begin{figure}[H]\centering
 \includegraphics[width=.94\textwidth]{evidence/frontend/05-clubes.png}
@@ -38,7 +38,7 @@ La interfaz permite consultar clubes y unirse a una comunidad, como se aprecia e
 \end{figure}
 
 \section{Consumo de servicios}
-El inicio de sesión normal de la interfaz consumió \texttt{POST /api/auth/login} y, tras autenticarse, solicitó \texttt{GET /api/v1/users/me}. La carga del inicio y la exploración consumió \texttt{GET /api/catalog/movies}. La navegación por detalle, clubes y sesión confirmó la integración visual con sus dominios correspondientes. La Tabla~\ref{tab:frontend-servicios} distingue las operaciones confirmadas durante el recorrido de las capacidades expuestas por el backend; no se atribuyen a la interfaz operaciones que no se ejecutaron.
+Durante las pruebas, el inicio de sesión usó \texttt{POST /api/auth/login} y luego consultó \texttt{GET /api/v1/users/me}. La portada y la sección Explorar usaron \texttt{GET /api/catalog/movies}. También se recorrieron las pantallas de detalle, clubes y sesión. La Tabla~\ref{tab:frontend-servicios} separa las operaciones que se probaron de las que están disponibles en el backend, pero no se ejecutaron.
 
 \begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.22}
 \caption{Relación entre frontend y microservicios.}\label{tab:frontend-servicios}
@@ -54,4 +54,4 @@ Analytics & Panel \path{/analytics} con KPIs y tablas & \texttt{GET /api/v1/dash
 \end{tabularx}
 \end{table}
 
-La tabla muestra que Catalog, Community, Interaction, Cinema Session y Analytics disponen de capacidades REST integradas en la aplicación. El recorrido confirmó de forma directa el inicio de sesión, las lecturas de catálogo y perfil, y la consulta de indicadores de Analytics. Las acciones que alteran datos no se ejecutaron para preservar la cuenta de prueba; por ello, el consumo de al menos dos métodos REST desde el frontend no queda completamente demostrado para cada microservicio con este recorrido.
+La prueba confirmó el inicio de sesión, las consultas de catálogo y perfil, y los indicadores de Analytics. Las acciones que cambian datos no se ejecutaron en la cuenta de prueba. Por eso, el recorrido no demuestra el uso de al menos dos métodos REST desde el frontend para todos los microservicios.

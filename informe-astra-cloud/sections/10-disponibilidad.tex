@@ -1,4 +1,3 @@
 \chapter{Disponibilidad y balanceo}
-La arquitectura coloca dos instancias de producción en subredes de zonas de disponibilidad distintas y las registra en los seis grupos destino del ALB. Los health checks retiran del ruteo una réplica que no responda correctamente. No se definió un Auto Scaling Group; la redundancia contemplada es de dos réplicas estáticas.
-La base de datos y la ingesta se ejecutan en instancias únicas. Cinema Session conserva estado por proceso, por lo que una sesión no se comparte automáticamente entre réplicas.
-
+La arquitectura ubica dos instancias de producción en subredes de zonas de disponibilidad distintas y las registra en los seis grupos destino del ALB. El balanceador revisa periódicamente si cada instancia responde. Si una deja de hacerlo, deja de enviarle solicitudes hasta que vuelva a estar disponible. No se configuró un Auto Scaling Group; la redundancia se basa en dos réplicas fijas.
+La base de datos y la ingesta se ejecutan en una sola instancia. Cinema Session guarda el estado en la memoria de cada proceso, por lo que una sesión no se comparte automáticamente entre réplicas.

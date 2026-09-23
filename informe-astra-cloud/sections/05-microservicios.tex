@@ -7,16 +7,16 @@ Interaction&Node.js, Express&MongoDB&Reseñas, likes, listas e historial.\\
 Cinema Session&Python, FastAPI&Memoria&Sesiones grupales, reproducción y chat.\\
 Analytics&Python, FastAPI&Athena&Consultas analíticas sobre S3/Glue.\\\bottomrule\end{tabularx}\end{table}
 \section{Identity Service}
-Identity expone \path{/api/auth/register} y \path{/api/auth/login}. Su tabla \texttt{users} almacena UUID, correo único, nombre, hash de contraseña y rol. En el inicio de sesión verifica el hash y emite un JWT HS256 con \texttt{sub}, expiración y emisor \texttt{identity-service}.
+Identity expone \path{/api/auth/register} y \path{/api/auth/login}. La tabla \texttt{users} guarda el UUID, correo, nombre, hash de contraseña y rol. Al iniciar sesión, el servicio verifica la contraseña y emite un JWT HS256 con \texttt{sub}, expiración y emisor \texttt{identity-service}.
 \section{Catalog Service}
-Catalog usa Spring Boot, Spring Data JPA y Flyway. Administra \texttt{movie}, \texttt{genre}, \texttt{artist}, sus relaciones, fuentes de video y subtítulos. Sus rutas principales son \path{/api/catalog/movies}, \path{/api/catalog/home}, \path{/api/catalog/search} y \path{/api/catalog/movies/\{publicId\}/session-info}.
+Catalog usa Spring Boot, Spring Data JPA y Flyway. Guarda películas, géneros, artistas, sus relaciones, fuentes de video y subtítulos. Sus rutas principales son \path{/api/catalog/movies}, \path{/api/catalog/home}, \path{/api/catalog/search} y \path{/api/catalog/movies/\{publicId\}/session-info}.
 \section{Community Service}
-Community usa FastAPI, SQLAlchemy y MySQL. Mantiene perfiles asociados al UUID de Identity, sin guardar contraseñas. Sus modelos son \texttt{users}, \texttt{clubs}, \texttt{memberships}, \texttt{watch\_rooms} y \texttt{watch\_participants}; las rutas \path{/api/v1} administran perfiles, clubes, roles y salas persistentes.
+Community usa FastAPI, SQLAlchemy y MySQL. Guarda perfiles asociados al UUID de Identity, sin almacenar contraseñas. Sus tablas son \texttt{users}, \texttt{clubs}, \texttt{memberships}, \texttt{watch\_rooms} y \texttt{watch\_participants}. Las rutas bajo \path{/api/v1} manejan perfiles, clubes, roles y salas.
 \section{Interaction Service}
-Interaction emplea Express, Mongoose y MongoDB. Sus colecciones \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history} guardan la acción junto con snapshots de usuario y película. El servicio consulta Catalog y Community para validar referencias y formar esos snapshots; \path{/ingest/*} sirve la extracción paginada.
+Interaction usa Express, Mongoose y MongoDB. Sus colecciones \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history} guardan cada acción junto con una copia de los datos del usuario y de la película en ese momento. Antes de guardar una acción, consulta Catalog y Community para validar las referencias. La ruta \path{/ingest/*} entrega los datos por páginas para la extracción.
 \section{Cinema Session Service}
-Cinema Session mantiene un repositorio en memoria para crear sesiones, participantes y estado de reproducción. El WebSocket \path{/api/v1/sessions/\{session\_id\}/ws} difunde cambios de reproducción y chat. El estado se libera al finalizar la sesión. Su endpoint de estadísticas consulta Interaction por HTTP.
+Cinema Session guarda en memoria las sesiones, los participantes y el estado de reproducción. El WebSocket \path{/api/v1/sessions/\{session\_id\}/ws} envía los cambios de reproducción y chat a los participantes. Al terminar la sesión, ese estado se elimina. Su ruta de estadísticas consulta Interaction por HTTP.
 \section{Analytics Service}
-Analytics expone rutas bajo \path{/api/v1}, como \path{/movies/top-watched}, \path{/interactions/movies/best-rated} y \path{/dashboard/kpis}. Mediante \texttt{boto3}, envía SQL a Athena y transforma las filas resultantes en JSON.
+Analytics expone rutas bajo \path{/api/v1}, como \path{/movies/top-watched}, \path{/interactions/movies/best-rated} y \path{/dashboard/kpis}. Con \texttt{boto3}, envía consultas SQL a Athena y devuelve las filas como JSON.
 \section{Documentación}
 Catalog publica Swagger UI en \path{/swagger-ui.html}; los servicios FastAPI disponen de \path{/docs}; Interaction integra Swagger UI en \path{/docs}.

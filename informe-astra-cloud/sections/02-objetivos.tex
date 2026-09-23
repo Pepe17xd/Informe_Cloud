@@ -1,11 +1,10 @@
 \chapter{Objetivos}
 \section{Objetivo general}
-Diseñar e implementar una arquitectura cloud basada en microservicios para una plataforma cinematográfica, integrando servicios backend, persistencia políglota, contenedores Docker, infraestructura AWS y procesamiento analítico.
+Diseñar e implementar una plataforma cinematográfica basada en microservicios, con servicios backend, distintas bases de datos, contenedores Docker, infraestructura AWS y procesamiento analítico.
 \section{Objetivos específicos}
 \begin{itemize}
 \item Desarrollar servicios independientes para identidad, catálogo, comunidad, interacción social, sesiones y analítica.
-\item Utilizar bases de datos relacionales y NoSQL de acuerdo con los datos de cada dominio.
-\item Contenerizar los componentes y definir su despliegue con Docker Compose e infraestructura como código.
+\item Utilizar bases de datos relacionales y NoSQL según el tipo de información de cada servicio.
+\item Ejecutar los componentes con Docker Compose y definir su despliegue como código.
 \item Extraer datos operativos hacia S3 y habilitar consultas analíticas mediante Athena.
 \end{itemize}
-

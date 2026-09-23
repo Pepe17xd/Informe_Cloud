@@ -1,10 +1,10 @@
-\chapter{Persistencia políglota}
+\chapter{Uso de bases de datos}
 \section{PostgreSQL}
-PostgreSQL respalda Identity y Catalog. Identity mantiene \texttt{users}; Catalog emplea \texttt{movie}, \texttt{genre}, \texttt{artist}, tablas de relación, fuentes de video y subtítulos. Las relaciones N:M preservan la consistencia entre películas, géneros y artistas, y Flyway versiona el esquema.
+El proyecto usa distintas bases de datos según el tipo de información que maneja cada servicio; este enfoque se conoce como persistencia políglota. PostgreSQL se usa en Identity y Catalog. Identity guarda \texttt{users}; Catalog guarda \texttt{movie}, \texttt{genre}, \texttt{artist}, tablas de relación, fuentes de video y subtítulos. Las relaciones N:M conectan películas, géneros y artistas, y Flyway mantiene las versiones del esquema.
 \begin{figure}[H]\centering\includegraphics[width=.92\textwidth]{figures/er-postgresql.pdf}\caption{Modelo relacional PostgreSQL para Identity y Catalog}\label{fig:er_postgresql}\end{figure}
 \section{MySQL}
-Community utiliza MySQL para los modelos de usuarios, clubes, membresías, salas y participantes. La tabla \texttt{memberships} materializa la relación usuario--club; las salas guardan anfitrión, película y club opcional. El identificador de película es una referencia de aplicación al catálogo, no una clave foránea interservicio.
+Community usa MySQL para usuarios, clubes, membresías, salas y participantes. La tabla \texttt{memberships} une a cada usuario con sus clubes. Las salas guardan el anfitrión, la película y, si corresponde, el club. El identificador de película se consulta en Catalog; no es una clave foránea entre servicios.
 \begin{figure}[H]\centering\includegraphics[width=.92\textwidth]{figures/er-mysql.pdf}\caption{Modelo relacional MySQL del Community Service}\label{fig:er_mysql}\end{figure}
 \section{MongoDB}
-Interaction usa MongoDB para \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history}. Cada documento combina la acción con snapshots de usuario y película para facilitar la lectura contextual y la extracción analítica. Los índices compuestos únicos de reseñas y likes evitan duplicados por usuario y película.
+Interaction usa MongoDB para \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history}. Cada documento guarda la acción y una copia de los datos del usuario y de la película. Los índices únicos de reseñas y likes evitan que un usuario repita la misma acción sobre una película.
 \begin{figure}[H]\centering\includegraphics[width=.92\textwidth]{figures/modelo-mongodb.pdf}\caption{Modelo documental MongoDB del Interaction Service}\label{fig:modelo_mongodb}\end{figure}

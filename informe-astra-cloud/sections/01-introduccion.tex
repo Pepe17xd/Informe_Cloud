@@ -1,4 +1,4 @@
 \chapter{Introducción}
-ASTRA CLOUD es una plataforma cinematográfica distribuida desarrollada para el curso de Cloud Computing. El proyecto separa la identidad, el catálogo, la comunidad, las interacciones, las sesiones de cine y la analítica en servicios independientes. Cada servicio se encarga de un dominio específico.
+ASTRA CLOUD es una plataforma cinematográfica desarrollada para el curso de Cloud Computing. La aplicación se dividió en servicios independientes para identidad, catálogo, comunidad, interacciones, sesiones de cine y analítica. Cada uno se encarga de una función específica.
 
-La solución integra APIs REST, WebSocket para las sesiones en vivo, persistencia relacional y documental, contenedores Docker e infraestructura AWS definida como código. También incluye un pipeline que extrae datos operacionales, los guarda en archivos CSV y los deposita en Amazon S3 para analizarlos con Athena.
+El proyecto usa APIs REST, WebSocket para las sesiones en vivo, Docker e infraestructura AWS definida como código. Para guardar la información se utilizan bases de datos relacionales y MongoDB. También se implementó un proceso que extrae datos, los guarda en archivos CSV en Amazon S3 y los consulta con Athena.
