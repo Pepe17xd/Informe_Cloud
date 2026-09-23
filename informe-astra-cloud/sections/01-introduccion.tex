@@ -1,4 +1,8 @@
 \chapter{Introducción}
-ASTRA CLOUD es una plataforma cinematográfica desarrollada para el curso de Cloud Computing. La aplicación se dividió en servicios independientes para identidad, catálogo, comunidad, interacciones, sesiones de cine y analítica. Cada uno se encarga de una función específica.
+Las plataformas digitales de contenido ya no se limitan a mostrar o reproducir películas. También deben administrar usuarios, organizar catálogos, registrar interacciones, facilitar espacios de comunidad, coordinar sesiones compartidas y generar información útil a partir de los datos que producen. Reunir todas estas funciones en un único componente vuelve más difícil mantener, ampliar y entender el comportamiento de la aplicación.
 
-El proyecto usa APIs REST, WebSocket para las sesiones en vivo, Docker e infraestructura AWS definida como código. Para guardar la información se utilizan bases de datos relacionales y MongoDB. También se implementó un proceso que extrae datos, los guarda en archivos CSV en Amazon S3 y los consulta con Athena.
+ASTRA CLOUD surge como respuesta a esa necesidad. Para el proyecto se planteó una arquitectura basada en microservicios que separa las responsabilidades de identidad, catálogo, comunidad, interacciones, sesiones compartidas y analítica. De este modo, cada servicio atiende una parte delimitada de la plataforma y se integra con los demás mediante interfaces definidas.
+
+La solución combina mecanismos de persistencia adecuados para los distintos tipos de información, comunicación entre servicios mediante HTTP/REST y WebSocket cuando se requiere interacción en tiempo real. Los componentes se ejecutan en contenedores Docker y se despliegan sobre infraestructura AWS definida como código. Asimismo, los datos operativos se extraen hacia Amazon S3 para su consulta analítica con Athena.
+
+Este informe describe la arquitectura general de ASTRA CLOUD, los microservicios que la conforman, el uso de bases de datos, el despliegue en AWS, la integración entre componentes, el flujo analítico, las medidas de seguridad y las pruebas realizadas.
