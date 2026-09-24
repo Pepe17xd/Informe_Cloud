@@ -1,8 +1,10 @@
-\chapter{Infraestructura AWS}
+﻿\chapter{Infraestructura AWS}
 \section{Red y cómputo}
-CloudFormation define la red en AWS: una VPC \texttt{10.0.0.0/16}, dos subredes públicas en zonas de disponibilidad diferentes, Internet Gateway, rutas y DNS interno. También crea dos EC2 de producción, una para bases de datos y otra para ingesta, ambas \texttt{t3.medium} con volúmenes gp3 de 20 GiB. La zona privada de Route 53 \texttt{proycloud.local} resuelve \texttt{db.proycloud.local}.
+CloudFormation define la red en AWS: una VPC \texttt{10.0.0.0/16}, dos subredes públicas en zonas de disponibilidad diferentes, Internet Gateway, rutas y DNS interno. también crea dos EC2 de producción, una para bases de datos y otra para ingesta, ambas \texttt{t3.medium} con volúmenes gp3 de 20 GiB. La zona privada de Route 53 \texttt{proycloud.local} resuelve \texttt{db.proycloud.local}.
 \section{Exposición de servicios}
 Las solicitudes llegan por seis API Gateway conectados al ALB interno mediante VPC Link. El ALB identifica el servicio según el puerto y envía cada solicitud a las EC2 disponibles. Cada 30 segundos revisa la ruta \path{/health} para no dirigir tráfico a un servicio que no responde.
+La Figura~\ref{fig:api-gateway-apis} evidencia las seis APIs regionales publicadas para los servicios de ASTRA CLOUD.
+\begin{figure}[H]\centering\includegraphics[width=.96\textwidth]{figures/api_gatway_evidencia.jpeg}\caption{APIs regionales de ASTRA CLOUD visibles en la consola de Amazon API Gateway.}\label{fig:api-gateway-apis}\end{figure}
 \begin{table}[H]\centering\small\caption{Ruteo AWS definido}\begin{tabularx}{\textwidth}{p{.25\textwidth}p{.22\textwidth}X}\toprule Servicio&API Gateway&Listener y grupo destino\\\midrule Identity&IdentityAPI&9000 / TGIdentity\\Catalog&CatalogAPI&8081 / TGCatalog\\Community&CommunityAPI&8000 / TGCommunity\\Interaction&InteractionAPI&8082 / TGInteraction\\Analytics&AnalyticsAPI&8002 / TGAnalytics\\Cinema Session&CinemaAPI&8001 / TGCinema\\\bottomrule\end{tabularx}\end{table}
 \section{S3}
-La plantilla crea un bucket para los pósters de películas. Los objetos se cifran con SSE-S3 AES256 y tienen lectura pública solo para ese contenido visual.
+La plantilla crea un bucket para los pósters de películas. Los objetos se cifran con SSE-S3 AES256 y  tienen lectura pública solo para ese contenido visual.

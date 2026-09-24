@@ -1,5 +1,6 @@
-\chapter{Arquitectura de microservicios}
-\begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.2}\caption{Microservicios de ASTRA CLOUD}\begin{tabularx}{\textwidth}{p{.19\textwidth}p{.17\textwidth}p{.16\textwidth}X}\toprule Servicio&Tecnología&Persistencia&Responsabilidad\\\midrule
+﻿\chapter{Arquitectura de microservicios}
+La solución organiza cinco responsabilidades de dominio ---Catalog, Community, Interaction, Cinema Session y Analytics--- y añade Identity como servicio transversal. Por ello se presentan seis microservicios sin que ello altere el mínimo funcional: Identity concentra registro, autenticación y emisión de JWT, mientras que los demás servicios no almacenan ni administran credenciales. La separación reduce el acoplamiento entre identidad y lógica de dominio.
+\begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.2}\caption{Microservicios de ASTRA CLOUD}\begin{tabularx}{\textwidth}{p{.19\textwidth}p{.17\textwidth}p{.16\textwidth}X}\toprule Servicio&Tecnologa&Persistencia&Responsabilidad\\\midrule
 Identity&Python, FastAPI&PostgreSQL&Registro, autenticación y JWT.\\
 Catalog&Java, Spring Boot&PostgreSQL&Metadatos de películas y reproducción.\\
 Community&Python, FastAPI&MySQL&Perfiles, clubes, membresías y salas.\\
@@ -15,8 +16,15 @@ Community usa FastAPI, SQLAlchemy y MySQL. Guarda perfiles asociados al UUID de 
 \section{Interaction Service}
 Interaction usa Express, Mongoose y MongoDB. Sus colecciones \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history} guardan cada acción junto con una copia de los datos del usuario y de la película en ese momento. Antes de guardar una acción, consulta Catalog y Community para validar las referencias. La ruta \path{/ingest/*} entrega los datos por páginas para la extracción.
 \section{Cinema Session Service}
-Cinema Session guarda en memoria las sesiones, los participantes y el estado de reproducción. El WebSocket \path{/api/v1/sessions/\{session\_id\}/ws} envía los cambios de reproducción y chat a los participantes. Al terminar la sesión, ese estado se elimina. Su ruta de estadísticas consulta Interaction por HTTP.
+Cinema Session guarda en memoria por proceso las sesiones, los participantes, el estado de reproducción y los últimos mensajes del chat; al terminar la sesión ese estado se elimina. La rama integrada \texttt{feature/http-polling-chat} expone \texttt{GET /api/v1/sessions/\{id\}/state}, \texttt{POST /api/v1/sessions/\{id\}/chat} y \texttt{PATCH /api/v1/sessions/\{id\}/playback}. La interfaz consulta el estado cada 1,5 segundos, y usa las respuestas para volver a sincronizar el reproductor y el chat. La ruta de estadísticas consulta Interaction por HTTP.
 \section{Analytics Service}
 Analytics expone rutas bajo \path{/api/v1}, como \path{/movies/top-watched}, \path{/interactions/movies/best-rated} y \path{/dashboard/kpis}. Con \texttt{boto3}, envía consultas SQL a Athena y devuelve las filas como JSON.
 \section{Documentación}
-Catalog publica Swagger UI en \path{/swagger-ui.html}; los servicios FastAPI disponen de \path{/docs}; Interaction integra Swagger UI en \path{/docs}.
+Las seis APIs desplegadas respondieron públicamente a sus puntos de documentación el 23 de septiembre de 2026. Catalog publica \path{/swagger-ui.html} y \path{/v3/api-docs}; Identity, Community, Cinema Session y Analytics exponen \path{/docs} y OpenAPI; Interaction integra Swagger UI en \path{/docs}. La Tabla~\ref{tab:swagger-evidencia} identifica el artefacto remoto conservado, sin tokens ni cabeceras de autenticación.
+\begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.15}\caption{Evidencia de documentación OpenAPI/Swagger verificada remotamente.}\label{tab:swagger-evidencia}\begin{tabularx}{\textwidth}{p{.2\textwidth}p{.24\textwidth}X}\toprule Servicio&Endpoint&Evidencia conservada\\\midrule
+Identity&\path{/docs}, \path{/openapi.json}&\texttt{evidence/swagger/identity-swagger.png} y esquema JSON.\\
+Catalog&\path{/swagger-ui.html}, \path{/v3/api-docs}&\texttt{evidence/swagger/catalog-openapi.json}.\\
+Community&\path{/docs}, \path{/openapi.json}&\texttt{evidence/swagger/community-openapi.json}.\\
+Interaction&\path{/docs}&\texttt{evidence/swagger/interaction-swagger.png}.\\
+Cinema Session&\path{/docs}, \path{/openapi.json}&\texttt{evidence/swagger/cinema-swagger.png} y esquema JSON.\\
+Analytics&\path{/docs}, \path{/openapi.json}&\texttt{evidence/swagger/analytics-swagger.png} y esquema JSON.\\\bottomrule\end{tabularx}\end{table}

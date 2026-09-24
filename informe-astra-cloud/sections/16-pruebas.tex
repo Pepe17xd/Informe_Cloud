@@ -1,3 +1,3 @@
-\chapter{Pruebas y validación}
-El proyecto incluye pruebas automatizadas para Community, Interaction y Cinema Session. Community y Cinema Session usan Pytest para revisar rutas, permisos y flujos de salas. Interaction usa \texttt{node:test}, Supertest y \texttt{mongodb-memory-server}, por lo que puede probar sus rutas sin una instancia externa de MongoDB. Los servicios también tienen rutas de salud que usan la integración y el balanceo.
+﻿\chapter{Pruebas y validación}
+El proyecto incluye pruebas automatizadas para Community, Interaction y Cinema Session. Community y Cinema Session usan Pytest para revisar rutas, permisos y flujos de salas. Interaction usa \texttt{node:test}, Supertest y \texttt{mongodb-memory-server}, por lo que puede probar sus rutas sin una instancia externa de MongoDB. Los servicios también  tienen rutas de salud que usan la integración y el balanceo.
 Interaction incluye \texttt{npm run seed}, un script que puede ejecutarse varias veces sin duplicar los datos que ya existen. Por defecto genera 20\,000 documentos para reseñas, watchlists e historial, y 25\,000 para likes. Las variables \texttt{SEED\_*} permiten ajustar estos escenarios.

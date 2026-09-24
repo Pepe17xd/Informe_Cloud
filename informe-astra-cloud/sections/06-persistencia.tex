@@ -1,24 +1,43 @@
-\chapter{Uso de bases de datos}
+﻿\chapter{Uso de bases de datos}
 \section{PostgreSQL}
-El proyecto usa distintas bases de datos segun el tipo de informacion que maneja cada servicio; este enfoque se conoce como persistencia poliglota. PostgreSQL se usa en Identity y Catalog. Identity guarda \texttt{users}; Catalog guarda \texttt{movie}, \texttt{genre}, \texttt{artist}, las tablas puente \texttt{movie\_genre} y \texttt{movie\_artist}, fuentes de video y subtitulos. Las relaciones N:M entre peliculas, generos y artistas se materializan mediante dichas tablas puente, y Flyway mantiene las versiones del esquema.
-
-La Figura~\ref{fig:er_catalog_actualizado} presenta el diagrama ER actualizado del Catalog Service, con sus claves primarias, claves foraneas y relaciones fisicas.
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth,height=.76\textheight,keepaspectratio]{../catalog.jpeg}
-\caption{Diagrama ER actualizado del Catalog Service en PostgreSQL.}
-\label{fig:er_catalog_actualizado}
-\end{figure}
-
+El proyecto usa distintas bases de datos según el tipo de información que maneja cada servicio; este enfoque se conoce como persistencia políglota. PostgreSQL se usa en Identity y Catalog. Identity guarda \texttt{users}; Catalog guarda \texttt{movie}, \texttt{genre}, \texttt{artist}, las tablas puente \texttt{movie\_genre} y \texttt{movie\_artist}, fuentes de video y subtítulos. Las relaciones N:M entre películas, géneros y artistas se materializan mediante dichas tablas puente, y Flyway mantiene las versiones del esquema.
+El modelo entidad-relación final de Catalog se presenta en la Figura~\ref{fig:er-catalog-final}.
+\begin{figure}[H]\centering\includegraphics[width=\textwidth,height=.76\textheight,keepaspectratio]{figures/version_final_er_catalog.jpeg}\caption{Modelo entidad-relación final del Catalog Service en PostgreSQL.}\label{fig:er-catalog-final}\end{figure}
 \section{MySQL}
-Community usa MySQL para usuarios, clubes, membresias, salas y participantes. La tabla \texttt{memberships} materializa la relacion N:M entre usuarios y clubes. Las salas guardan el anfitrion y, si corresponde, el club; \texttt{watch\_participants} registra sus participantes. La Figura~\ref{fig:er_community_actualizado} presenta las claves primarias, claves foraneas y restricciones vigentes del Community Service. El campo \texttt{watch\_rooms.movie\_id} es una referencia logica hacia Catalog y no una clave foranea fisica entre MySQL y PostgreSQL.
-\begin{figure}[H]
-\centering
-\includegraphics[width=\textwidth,height=.76\textheight,keepaspectratio]{../comunity.jpeg}
-\caption{Diagrama ER actualizado del Community Service en MySQL.}
-\label{fig:er_community_actualizado}
-\end{figure}
-
+Community usa MySQL para usuarios, clubes, membresías, salas y participantes. La tabla \texttt{memberships} materializa la relación N:M entre usuarios y clubes. Las salas guardan el anfitrión y, si corresponde, el club; \texttt{watch\_participants} registra sus participantes. El campo \texttt{watch\_rooms.movie\_id} es una referencia lógica hacia Catalog y no una clave foránea física entre MySQL y PostgreSQL.
+\begin{figure}[H]\centering\includegraphics[width=\textwidth,height=.76\textheight,keepaspectratio]{../comunity.jpeg}\caption{Diagrama ER actualizado del Community Service en MySQL.}\label{fig:er_community_actualizado}\end{figure}
 \section{MongoDB}
-Interaction usa MongoDB para \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history}. Cada documento guarda la accion y una copia de los datos del usuario y de la pelicula. Los indices unicos de resenas y likes evitan que un usuario repita la misma accion sobre una pelicula.
-\begin{figure}[H]\centering\includegraphics[width=.92\textwidth]{figures/modelo-mongodb.pdf}\caption{Modelo documental MongoDB del Interaction Service}\label{fig:modelo_mongodb}\end{figure}
+Interaction usa MongoDB para \texttt{reviews}, \texttt{likes}, \texttt{watchlists} y \texttt{watch\_history}. La implementación oficial de \url{https://github.com/dado4cs/interaction-service} define \texttt{movie\_id} como \texttt{String} (referencia lógica al UUID de Catalog) y \texttt{user\_id} como \texttt{Integer} (referencia lógica a Community). Los documentos incluyen fechas, snapshots embebidos de película y usuario y los campos específicos de cada interacción. El snapshot de película conserva \texttt{id}, \texttt{title} y \texttt{poster\_url}; el de usuario, \texttt{id}, \texttt{username}, \texttt{display\_name} y \texttt{avatar\_url}. Estos identificadores no son claves foráneas físicas de MongoDB.
+\begin{figure}[H]\centering\includegraphics[width=.98\textwidth]{../modelo_er_mongoDB.jpeg}\caption{Modelo documental de Interaction: colecciones, referencias lógicas y snapshots embebidos.}\label{fig:modelo_mongodb}\end{figure}
+\subsection{Estructuras JSON representativas}
+Los siguientes ejemplos son ficticios y solo ilustran la estructura; no representan registros reales.
+\begin{lstlisting}[language={},caption={Estructura de reviews}]
+{ "_id": "ObjectId ficticio", "movie_id": "movie-uuid-demo", "user_id": 202, "score": 8.5,
+  "comment": "Ejemplo", "date": "2026-09-23T10:00:00Z",
+  "movie": { "id": "movie-uuid-demo", "title": "Pelicula de ejemplo", "poster_url": "https://ejemplo/poster.jpg" },
+  "user": { "id": 202, "username": "usuario_demo", "display_name": "Usuario Demo", "avatar_url": "https://ejemplo/avatar.jpg" } }
+\end{lstlisting}
+\begin{lstlisting}[language={},caption={Estructura comun de likes y watchlists}]
+{ "_id": "ObjectId ficticio", "movie_id": "movie-uuid-demo", "user_id": 202, "date": "2026-09-23T10:00:00Z",
+  "movie": { "id": "movie-uuid-demo", "title": "Pelicula de ejemplo", "poster_url": "https://ejemplo/poster.jpg" },
+  "user": { "id": 202, "username": "usuario_demo", "display_name": "Usuario Demo", "avatar_url": "https://ejemplo/avatar.jpg" } }
+\end{lstlisting}
+\begin{lstlisting}[language={},caption={Estructura de watch\_history}]
+{ "_id": "ObjectId ficticio", "movie_id": "movie-uuid-demo", "user_id": 202, "watched_at": "2026-09-23T10:00:00Z",
+  "completed": true, "session_id": "session-demo",
+  "movie": { "id": "movie-uuid-demo", "title": "Pelicula de ejemplo", "poster_url": "https://ejemplo/poster.jpg" },
+  "user": { "id": 202, "username": "usuario_demo", "display_name": "Usuario Demo", "avatar_url": "https://ejemplo/avatar.jpg" } }
+\end{lstlisting}
+\section*{Evidencia de volumen de datos}
+La evidencia operativa demuestra el requisito de al menos 20\,000 registros por tecnología. No se suman tablas distintas para alcanzar el umbral. Catalog se muestra como evidencia adicional, no como cumplimiento individual.
+\begin{table}[H]\centering\small\caption{Evidencia de volumen por tecnología y base de datos.}\begin{tabularx}{\textwidth}{p{.16\textwidth}p{.17\textwidth}p{.22\textwidth}p{.13\textwidth}X}\toprule tecnología&Servicio&Tabla/colección&Registros&Evidencia\\\midrule
+PostgreSQL&Identity&\texttt{users}&50\,002&Figura~\ref{fig:evidencia_identity_volumen}\\
+MySQL&Community&\texttt{users}&50\,000&Figura~\ref{fig:evidencia_community_volumen}\\
+MongoDB&Interaction&\texttt{likes}&25\,000&Figura~\ref{fig:evidencia_interaction_volumen}\\
+PostgreSQL&Catalog&\texttt{artist}&14\,183&Figura~\ref{fig:evidencia_catalog_artist}\\
+PostgreSQL&Catalog&\texttt{movie\_subtitle}&10\,000&Figura~\ref{fig:evidencia_catalog_subtitles}\\\bottomrule\end{tabularx}\end{table}
+\begin{figure}[H]\centering\includegraphics[width=.82\textwidth]{../evidencia_cantidad_datos_base_datos.jpeg}\caption{PostgreSQL Identity: 50\,002 registros en users.}\label{fig:evidencia_identity_volumen}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.82\textwidth]{../evidencia_cantidad_datos3.jpeg}\caption{MySQL Community: 50\,000 registros en users.}\label{fig:evidencia_community_volumen}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.82\textwidth]{../evidencia_cantidad_datos4.jpeg}\caption{MongoDB Interaction: 25\,000 documentos en likes.}\label{fig:evidencia_interaction_volumen}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.82\textwidth]{../evidencia_cantidad_datos1.jpeg}\caption{Catalog: 14\,183 artistas; evidencia adicional.}\label{fig:evidencia_catalog_artist}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.82\textwidth]{../evidencia_cantidad_datos2.jpeg}\caption{Catalog: 10\,000 subtítulos; evidencia adicional.}\label{fig:evidencia_catalog_subtitles}\end{figure}

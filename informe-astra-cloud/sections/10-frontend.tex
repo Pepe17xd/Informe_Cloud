@@ -1,6 +1,13 @@
-\chapter{Frontend web desplegado}\label{chap:frontend}
+﻿\chapter{Frontend web desplegado}\label{chap:frontend}
 \section{Aplicación en AWS Amplify}
 Para ASTRA CLOUD se implementó una aplicación web desplegada en AWS Amplify. La interfaz se entrega por HTTPS y tiene las secciones Inicio, Explorar, Clubes, Mis películas, Analítica y órbitas de reproducción. La Figura~\ref{fig:frontend-inicio} muestra la portada pública, con contenido destacado, tendencias y accesos a una película o a una experiencia compartida.
+
+La consola de AWS Amplify identifica la aplicación \texttt{astra-frontend}, muestra su rama de producción conectada y ofrece el acceso a la URL desplegada. Esta captura demuestra la configuración visible del despliegue de Amplify; no representa una consulta de Athena ni constituye evidencia del Glue Data Catalog.
+\begin{figure}[H]\centering
+\includegraphics[width=.96\textwidth]{../evidencia_athena.jpeg}
+\caption{Aplicación \texttt{astra-frontend} y rama de producción visibles en AWS Amplify.}
+\label{fig:amplify-frontend-evidencia}
+\end{figure}
 
 \begin{figure}[H]\centering
 \includegraphics[width=.94\textwidth]{evidence/frontend/01-inicio-publico.png}
@@ -38,20 +45,21 @@ Desde la interfaz se pueden consultar clubes y unirse a una comunidad, como se m
 \end{figure}
 
 \section{Consumo de servicios}
-Durante las pruebas, el inicio de sesión usó \texttt{POST /api/auth/login} y luego consultó \texttt{GET /api/v1/users/me}. La portada y la sección Explorar usaron \texttt{GET /api/catalog/movies}. También se recorrieron las pantallas de detalle, clubes y sesión. La Tabla~\ref{tab:frontend-servicios} separa las operaciones que se probaron de las que están disponibles en el backend, pero no se ejecutaron.
+La configuración y el paquete JavaScript publicados por Amplify contienen las seis URL de API Gateway. La trazabilidad se verificó además contra la rama \texttt{origin/feature/http-polling-chat} del frontend, compatible con los controladores de los repositorios locales. La Tabla~\ref{tab:frontend-servicios} registra dos operaciones REST implementadas para cada servicio; ``código/bundle'' indica que la operación está presente tanto en el código de esa rama como en el paquete desplegado, y no que se ejecutó una operación que modifica datos durante la revisión.
+El bundle define \texttt{POST /api/auth/login} y \texttt{GET /api/v1/users/me}; la navegación pública observó la carga de \texttt{GET /api/catalog/movies} en Explorar. Las pantallas de detalle, clubes y sesión están disponibles en la interfaz, pero las operaciones protegidas no se marcan como ejecutadas cuando dependen de autenticación no completada. La Tabla~\ref{tab:frontend-servicios} distingue este alcance de verificación.
 
 \begin{table}[H]\centering\small\renewcommand{\arraystretch}{1.22}
-\caption{Relación entre frontend y microservicios.}\label{tab:frontend-servicios}
-\begin{tabularx}{\textwidth}{p{.19\textwidth}p{.31\textwidth}Y}
-\toprule Servicio & Funcionalidad del frontend & Operaciones/API comprobadas o disponibles en la implementación \\\midrule
-Identity & Inicio de sesión & \texttt{POST /api/auth/login} comprobado en la aplicación; \texttt{POST /api/auth/register} disponible en el servicio. \\
-Catalog & Inicio, explorar y detalle de película & \texttt{GET /api/catalog/movies} comprobado; \texttt{GET /api/catalog/movies/\{publicId\}} disponible para detalle. \\
-Community & Perfil y clubes & \texttt{GET /api/v1/users/me} comprobado; \texttt{GET /api/v1/clubs} disponible para el listado de clubes. \\
-Interaction & Like, watchlist y reseñas & Acciones visibles en el detalle; \texttt{POST/DELETE /movies/\{movieId\}/like} y \texttt{GET/POST /users/\{userId\}/watchlist} están implementados. No se invocaron operaciones mutables. \\
-Cinema Session & Órbita, reproducción y chat & Interfaz de sesión recorrida; \texttt{GET/POST /api/v1/sessions} y \texttt{POST /api/v1/sessions/\{id\}/chat} están implementados. \\
-Analytics & Panel \path{/analytics} con KPIs y tablas & \texttt{GET /api/v1/dashboard/kpis} comprobado durante el recorrido; la evidencia del panel se presenta en la Figura~\ref{fig:analytics-dashboard}. \\
+\caption{Trazabilidad frontend -- REST -- microservicio.}\label{tab:frontend-servicios}
+\begin{tabularx}{\textwidth}{p{.15\textwidth}p{.32\textwidth}Y}
+\toprule Servicio & Acción, archivo frontend y operaciones REST & Verificación realizada \\\midrule
+Identity & \texttt{authApi.ts}: iniciar sesión/registro; \texttt{POST /api/auth/login}, \texttt{POST /api/auth/register}. & Implementadas en el código y en el paquete desplegado; durante esta revisión no se confirmó el inicio de sesión desde la interfaz. \\
+Catalog & \texttt{catalogApi.ts}: inicio, explorar y órbita; \texttt{GET /api/catalog/movies}, \path{GET /api/catalog/movies/\{id\}/session-info}. & Implementadas en el código y en el paquete desplegado; la consulta del catálogo se observó desde la interfaz. \\
+Community & \texttt{communityApi.ts}: clubes/unirse; \texttt{GET /api/v1/clubs}, \texttt{POST /api/v1/clubs/\{id\}/members}. & Implementadas en el código y en el paquete desplegado; durante la revisión no se ejecutaron operaciones que modificaran datos. \\
+Interaction & \texttt{MovieDetail}: likes y watchlist; \texttt{GET /users/\{id\}/likes}, \texttt{GET /users/\{id\}/watchlist}. & Implementadas en el código y en el paquete desplegado; durante la revisión no se ejecutaron acciones que modificaran datos. \\
+Cinema Session & \texttt{useCinemaRoom.ts}: sincronización/chat; \texttt{GET /api/v1/sessions/\{id\}/state}, \texttt{POST /api/v1/sessions/\{id\}/chat}. & Implementadas en el código y en el paquete desplegado. El servicio también utiliza \texttt{PATCH /playback} para actualizar la reproducción; no se creó una sesión de prueba durante esta revisión. \\
+Analytics & \texttt{analyticsService.ts}: tablero; \texttt{GET /api/v1/dashboard/kpis}, \texttt{GET /api/v1/genres/most-watched}. & Implementadas en el código y en el paquete desplegado; su ejecución desde la interfaz requiere una sesión autenticada. \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-La prueba confirmó el inicio de sesión, las consultas de catálogo y perfil, y los indicadores de Analytics. Las acciones que cambian datos no se ejecutaron en la cuenta de prueba. Por eso, el recorrido no demuestra el uso de al menos dos métodos REST desde el frontend para todos los microservicios.
+La navegación pública confirmó la pantalla Explorar. El intento autorizado de iniciar sesión no completó una sesión visible y, por ello, las rutas protegidas, incluida Analytics, no se clasifican como ejecutadas en la UI. La evidencia de dos operaciones por servicio corresponde a implementación y paquete desplegado; una prueba manual autenticada que complete el login sigue siendo necesaria para demostrar su ejecución extremo a extremo.

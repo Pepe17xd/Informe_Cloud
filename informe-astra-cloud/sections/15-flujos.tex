@@ -1,7 +1,7 @@
-\chapter{Flujos funcionales}
-\section{Autenticación y comunidad}
+﻿\chapter{Flujos funcionales}
+\section{Autenticacin y comunidad}
 El cliente registra una cuenta o inicia sesión en Identity y recibe un JWT. Community revisa el token y asocia el perfil local con el UUID \texttt{sub}. Después, el usuario puede crear clubes, unirse a ellos y abrir salas.
 \section{Catálogo e interacciones}
 Catalog entrega las películas y sus datos. Cuando un usuario crea una reseña, like, watchlist o visualización, Interaction revisa el token, consulta los servicios necesarios y guarda la acción junto con los datos relacionados.
 \section{Sesión y analítica}
-Cinema Session coordina una sesión temporal y envía los eventos por WebSocket. Los contenedores de carga extraen las tres bases de datos y suben archivos CSV a S3. Después, Analytics consulta Athena para obtener los indicadores.
+Cinema Session coordina una sesión temporal mediante HTTP periódico: la página consulta \texttt{GET /state} cada 1,5 segundos y actualiza el reproductor y el chat con la respuesta; los mensajes y cambios de reproducción usan \texttt{POST /chat} y \texttt{PATCH /playback}. Los contenedores de carga extraen las tres bases de datos y suben archivos CSV a S3. Después, Analytics consulta Athena para obtener los indicadores.

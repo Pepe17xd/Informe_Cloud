@@ -1,0 +1,1083 @@
+ UNIVERSIDAD DE INGENIERÍA Y TECNOLOGÍA
+                      UTEC
+
+
+
+
+          Curso: CLOUD COMPUTING
+
+
+DISEÑO E IMPLEMENTACIÓN DE UNA
+ARQUITECTURA CLOUD BASADA EN
+MICROSERVICIOS PARA ASTRA CLOUD
+
+         Informe Técnico del Proyecto
+
+
+
+
+                    Docente
+              Colchado Ruíz, Geraldo
+
+                   Integrantes
+          Guerrero Cedron, Antonio Jorge
+          Huaman Huamani, Josue Yeremi
+          Rosales Esteban, Antony Yonel
+          Timana Carmona, Jose Manuel
+           Villalobos Jiménez, José Luis
+
+
+
+
+                   Lima – Perú
+                      2026
+ASTRA CLOUD                                                                           Informe técnico
+
+
+Índice general
+1.   Introduccin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    1
+2.   Objetivos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    1
+   2.1. Objetivo general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      1
+   2.2. Objetivos especficos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      1
+3. Descripcin del proyecto . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      1
+   3.1. Problema y solucin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      1
+   3.2. Alcance . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     1
+   3.3. Capa cliente . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    2
+4. Arquitectura general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       2
+   4.1. Visin general . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     2
+   4.2. Ruta de acceso . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      3
+5. Arquitectura de microservicios . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       3
+   5.1. Identity Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    4
+   5.2. Catalog Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     4
+   5.3. Community Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       4
+   5.4. Interaction Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     4
+   5.5. Cinema Session Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      4
+   5.6. Analytics Service . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     4
+   5.7. Documentacin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      4
+6. Uso de bases de datos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .        5
+   6.1. PostgreSQL . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      5
+   6.2. MySQL . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       5
+   6.3. MongoDB . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       6
+         6.3.1. Estructuras JSON representativas . . . . . . . . . . . . . . . . . . . . . . .        7
+7. Comunicacin entre microservicios . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         9
+8. Contenedorizacin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      10
+9. Infraestructura AWS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       10
+   9.1. Red y cmputo . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     10
+   9.2. Exposicin de servicios . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     10
+   9.3. S3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   10
+10. Frontend web desplegado . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      10
+   10.1. Aplicacin en AWS Amplify . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      10
+   10.2. Comunidad y sesin compartida . . . . . . . . . . . . . . . . . . . . . . . . . . . .        12
+   10.3. Consumo de servicios . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    13
+11. Disponibilidad y balanceo . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      14
+12. Carga de datos para analtica . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       15
+13. Analtica con Athena . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      16
+   13.1. Panel de analtica en la aplicacin desplegada . . . . . . . . . . . . . . . . . . . . .      16
+   13.2. Consultas analticas en AWS Athena . . . . . . . . . . . . . . . . . . . . . . . . .         17
+   13.3. Vistas analticas en AWS Athena . . . . . . . . . . . . . . . . . . . . . . . . . . .        21
+14. Seguridad . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    23
+   14.1. Identidad y acceso . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    23
+   14.2. Red y configuracin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    24
+   14.3. Consideraciones . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   24
+15. Infraestructura definida como cdigo . . . . . . . . . . . . . . . . . . . . . . . . . . . .      24
+
+
+                                                   i
+ASTRA CLOUD                                                                            Informe técnico
+
+
+16. Flujos funcionales . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    24
+   16.1. Autenticacin y comunidad . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       24
+   16.2. Catlogo e interacciones . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    24
+   16.3. Sesin y analtica . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   24
+17. Pruebas y validacin . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     24
+18. Consideraciones de costos . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       25
+19. Limitaciones actuales . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     25
+20. Mejoras futuras . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     25
+21. Conclusiones . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      25
+22. ANEXOS . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .        25
+   22.1. Anexo A. Repositorios del proyecto . . . . . . . . . . . . . . . . . . . . . . . . . .       26
+   22.2. Anexo B. Aplicacin web desplegada . . . . . . . . . . . . . . . . . . . . . . . . . .        26
+
+
+
+
+                                                   ii
+ASTRA CLOUD                                                                         Informe técnico
+
+
+1 Introduccin
+    Las plataformas digitales de contenido integran diferentes funciones, como la gestin de usuarios,
+catlogos, comunidades, interacciones y sesiones compartidas. A medida que estas funcionalidades
+aumentan, tambin surge la necesidad de organizarlas de manera que puedan desarrollarse y
+mantenerse de forma independiente.
+    A partir de esta necesidad se desarroll ASTRA CLOUD, una plataforma cinematogrfica basada
+en una arquitectura de microservicios. El proyecto integra seis servicios con responsabilidades
+especficas y utiliza tecnologas cloud para su comunicacin, almacenamiento, despliegue y anlisis de
+datos. En este informe se presenta la arquitectura implementada y los principales componentes
+que permiten su funcionamiento.
+
+2 Objetivos
+2.1 Objetivo general
+   Disear e implementar una plataforma cinematogrfica basada en microservicios, con servicios
+backend, distintas bases de datos, contenedores Docker, infraestructura AWS y procesamiento
+analtico.
+
+2.2 Objetivos especficos
+      Desarrollar servicios independientes para identidad, catlogo, comunidad, interaccin social,
+      sesiones y analtica.
+
+      Utilizar bases de datos relacionales y NoSQL segn el tipo de informacin de cada servicio.
+
+      Ejecutar los componentes con Docker Compose y definir su despliegue como cdigo.
+
+      Extraer datos operativos hacia S3 y habilitar consultas analticas mediante Athena.
+
+3 Descripcin del proyecto
+3.1 Problema y solucin
+    En una plataforma cinematogrfica, la gestin de cuentas, pelculas, comunidades, reacciones y
+sesiones compartidas responde a necesidades distintas y cambia a ritmos diferentes. Cuando estas
+funciones se concentran en una sola aplicacin, las reglas de autenticacin, la informacin del catlogo,
+la actividad social y la coordinacin en tiempo real quedan estrechamente acopladas. Esto dificulta
+mantener cada parte, incorporar cambios y elegir la forma de persistencia ms conveniente para
+sus datos.
+    Para abordar esta situacin, ASTRA CLOUD adopta una arquitectura de microservicios.
+Identity se encarga del registro y la autenticacin; Catalog administra la informacin de las pelculas;
+Community organiza perfiles, clubes y salas; Interaction registra reseas, likes, listas e historial;
+Cinema Session coordina las sesiones temporales; y Analytics consulta la informacin reunida
+para fines analticos. La separacin permite delimitar responsabilidades y establecer integraciones
+explcitas entre los servicios, sin perder la continuidad de la experiencia para el usuario.
+
+3.2 Alcance
+    El proyecto incluye las seis APIs de backend, sus configuraciones de contenedor, los procesos
+de carga hacia S3 y la plantilla de infraestructura. Los cinco servicios de dominio requeridos por el
+alcance se complementan con Identity, un servicio adicional y transversal de registro, autenticacin
+y emisin de JWT. Esta separacin evita mezclar credenciales con las reglas del catlogo, comunidad,
+
+                                                 1
+ASTRA CLOUD                                                                           Informe técnico
+
+
+interacciones, sesiones y analtica. La mayor parte de las operaciones se resuelve mediante REST.
+En la versin integrada para el parcial, Cinema Session usa consultas HTTP peridicas.
+
+3.3 Capa cliente
+    La aplicacin web est desplegada en AWS Amplify. Desde ella se puede iniciar sesin, explorar
+el catlogo, revisar el detalle de una pelcula, consultar clubes, editar el perfil y participar en rbitas
+compartidas. La interfaz consume las APIs publicadas por API Gateway y archivos estticos de
+S3. El cdigo fuente del frontend est disponible en sources/frontend/ y se conserva evidencia de
+su paquete desplegado; la configuracin completa de Amplify no forma parte de este repositorio.
+La aplicacin y su trazabilidad se describen en el Captulo 10.
+
+4 Arquitectura general
+4.1 Visin general
+   ASTRA CLOUD rene el frontend desplegado en Amplify, los servicios de la aplicacin, las bases
+de datos y la parte analtica. Las APIs se ejecutan en contenedores, mientras que PostgreSQL,
+MySQL y MongoDB guardan la informacin de cada servicio. La Figura 4.1 muestra cmo se
+conectan estos componentes, junto con el flujo de datos desde S3 hasta Glue y Athena.
+
+
+
+
+                                                   2
+ASTRA CLOUD                                                                         Informe técnico
+
+
+
+
+                      Figura 4.1: Arquitectura general de ASTRA CLOUD
+
+4.2 Ruta de acceso
+    Las solicitudes del cliente llegan primero a API Gateway y pasan al ALB interno mediante
+VPC Link. El balanceador las dirige a la instancia EC2 y al contenedor donde se ejecuta el
+servicio correspondiente. El ALB reparte las solicitudes entre las instancias disponibles y no queda
+expuesto directamente a Internet.
+
+5 Arquitectura de microservicios
+    La solucin organiza cinco responsabilidades de dominio —Catalog, Community, Interaction,
+Cinema Session y Analytics— y aade Identity como servicio transversal. Por ello se presentan
+seis microservicios sin que ello altere el mnimo funcional: Identity concentra registro, autenticacin
+y emisin de JWT, mientras que los dems servicios no almacenan ni administran credenciales. La
+separacin reduce el acoplamiento entre identidad y lgica de dominio.
+
+
+
+
+                                                 3
+ASTRA CLOUD                                                                         Informe técnico
+
+
+
+                         Cuadro 5.1: Microservicios de ASTRA CLOUD
+ Servicio             Tecnologa           Persistencia       Responsabilidad
+ Identity             Python, FastAPI     PostgreSQL         Registro, autenticacin y JWT.
+ Catalog              Java, Spring Boot   PostgreSQL         Metadatos de pelculas y reproduccin.
+ Community            Python, FastAPI     MySQL              Perfiles, clubes, membresas y salas.
+ Interaction          Node.js, Express    MongoDB            Reseas, likes, listas e historial.
+ Cinema Session       Python, FastAPI     Memoria            Sesiones grupales, reproduccin y chat.
+ Analytics            Python, FastAPI     Athena             Consultas analticas sobre S3/Glue.
+
+
+5.1 Identity Service
+    Identity expone /api/auth/register y /api/auth/login. La tabla users guarda el UUID,
+correo, nombre, hash de contrasea y rol. Al iniciar sesin, el servicio verifica la contrasea y emite
+un JWT HS256 con sub, expiracin y emisor identity-service.
+
+5.2 Catalog Service
+    Catalog usa Spring Boot, Spring Data JPA y Flyway. Guarda pelculas, gneros, artistas, sus
+relaciones, fuentes de video y subttulos. Sus rutas principales son /api/catalog/movies, /api/
+catalog/home, /api/catalog/search y /api/catalog/movies/\{publicId\}/session-info.
+
+5.3 Community Service
+   Community usa FastAPI, SQLAlchemy y MySQL. Guarda perfiles asociados al UUID de
+Identity, sin almacenar contraseas. Sus tablas son users, clubs, memberships, watch_rooms y
+watch_participants. Las rutas bajo /api/v1 manejan perfiles, clubes, roles y salas.
+
+5.4 Interaction Service
+    Interaction usa Express, Mongoose y MongoDB. Sus colecciones reviews, likes, watchlists
+y watch_history guardan cada accin junto con una copia de los datos del usuario y de la pelcula
+en ese momento. Antes de guardar una accin, consulta Catalog y Community para validar las
+referencias. La ruta /ingest/* entrega los datos por pginas para la extraccin.
+
+5.5 Cinema Session Service
+    Cinema Session guarda en memoria por proceso las sesiones, los participantes, el estado de
+reproduccin y los ltimos mensajes del chat; al terminar la sesin ese estado se elimina. La ra-
+ma integrada feature/http-polling-chat expone GET /api/v1/sessions/{id}/state, POST
+/api/v1/sessions/{id}/chat y PATCH /api/v1/sessions/{id}/playback. La interfaz consul-
+ta el estado cada 1,5 segundos, y usa las respuestas para volver a sincronizar el reproductor y el
+chat. La ruta de estadsticas consulta Interaction por HTTP.
+
+5.6 Analytics Service
+   Analytics expone rutas bajo /api/v1, como /movies/top-watched, /interactions/movies/
+best-rated y /dashboard/kpis. Con boto3, enva consultas SQL a Athena y devuelve las filas
+como JSON.
+
+5.7 Documentacin
+   Las seis APIs desplegadas respondieron pblicamente a sus puntos de documentacin el 23 de
+septiembre de 2026. Catalog publica /swagger-ui.html y /v3/api-docs; Identity, Community,
+Cinema Session y Analytics exponen /docs y OpenAPI; Interaction integra Swagger UI en /docs.
+La Tabla 5.2 identifica el artefacto remoto conservado, sin tokens ni cabeceras de autenticacin.
+
+
+                                                 4
+ASTRA CLOUD                                                                       Informe técnico
+
+
+
+     Cuadro 5.2: Evidencia de documentacin OpenAPI/Swagger verificada remotamente.
+ Servicio               Endpoint                 Evidencia conservada
+ Identity               /docs, /openapi.json     evidence/swagger/identity-swagger.png y es-
+                                                 quema JSON.
+ Catalog                /swagger-ui.html,        evidence/swagger/catalog-openapi.json.
+                        /v3/api-docs
+ Community              /docs, /openapi.json     evidence/swagger/community-openapi.json.
+ Interaction            /docs                    evidence/swagger/interaction-swagger.png.
+ Cinema Session         /docs, /openapi.json     evidence/swagger/cinema-swagger.png y esque-
+                                                 ma JSON.
+ Analytics              /docs, /openapi.json     evidence/swagger/analytics-swagger.png y es-
+                                                 quema JSON.
+
+
+6 Uso de bases de datos
+6.1 PostgreSQL
+    El proyecto usa distintas bases de datos segun el tipo de informacion que maneja cada servicio;
+este enfoque se conoce como persistencia poliglota. PostgreSQL se usa en Identity y Catalog.
+Identity guarda users; Catalog guarda movie, genre, artist, las tablas puente movie_genre y
+movie_artist, fuentes de video y subtitulos. Las relaciones N:M entre peliculas, generos y artistas
+se materializan mediante dichas tablas puente, y Flyway mantiene las versiones del esquema.
+
+
+
+
+             Figura 6.1: Diagrama ER actualizado del Catalog Service en PostgreSQL.
+
+6.2 MySQL
+    Community usa MySQL para usuarios, clubes, membresias, salas y participantes. La ta-
+bla memberships materializa la relacion N:M entre usuarios y clubes. Las salas guardan el
+anfitrion y, si corresponde, el club; watch_participants registra sus participantes. El campo
+watch_rooms.movie_id es una referencia logica hacia Catalog y no una clave foranea fisica entre
+MySQL y PostgreSQL.
+
+
+
+                                                5
+ASTRA CLOUD                                                                     Informe técnico
+
+
+
+
+          Figura 6.2: Diagrama ER actualizado del Community Service en MySQL.
+
+6.3 MongoDB
+    Interaction usa MongoDB para reviews, likes, watchlists y watch_history. La implemen-
+tacion oficial de https://github.com/dado4cs/interaction-service define movie_id como
+String (referencia logica al UUID de Catalog) y user_id como Integer (referencia logica a
+Community). Los documentos incluyen fechas, snapshots embebidos de pelicula y usuario y los
+campos especificos de cada interaccion. El snapshot de pelicula conserva id, title y poster_url;
+el de usuario, id, username, display_name y avatar_url. Estos identificadores no son claves
+foraneas fisicas de MongoDB.
+
+
+
+
+                                               6
+ASTRA CLOUD                                                                      Informe técnico
+
+
+
+
+Figura 6.3: Modelo documental de Interaction: colecciones, referencias lgicas y snapshots embebi-
+dos.
+
+6.3.1 Estructuras JSON representativas
+    Los siguientes ejemplos son ficticios y solo ilustran la estructura; no representan registros
+reales.
+{ " _id ": " ObjectId ficticio " , " movie_id ": " movie - uuid - demo " , " user_id ": 202 , "
+     score ": 8.5 ,
+  " comment ": " Ejemplo " , " date ": "2026 -09 -23 T10 :00:00 Z " ,
+  " movie ": { " id ": " movie - uuid - demo " , " title ": " Pelicula de ejemplo " , "
+       poster_url ": " https :// ejemplo / poster . jpg " } ,
+  " user ": { " id ": 202 , " username ": " usuario_demo " , " display_name ": " Usuario Demo
+       " , " avatar_url ": " https :// ejemplo / avatar . jpg " } }
+
+                               Listing 6.1: Estructura de reviews
+
+{ " _id ": " ObjectId ficticio " , " movie_id ": " movie - uuid - demo " , " user_id ": 202 , "
+     date ": "2026 -09 -23 T10 :00:00 Z " ,
+  " movie ": { " id ": " movie - uuid - demo " , " title ": " Pelicula de ejemplo " , "
+       poster_url ": " https :// ejemplo / poster . jpg " } ,
+  " user ": { " id ": 202 , " username ": " usuario_demo " , " display_name ": " Usuario Demo
+       " , " avatar_url ": " https :// ejemplo / avatar . jpg " } }
+
+                      Listing 6.2: Estructura comun de likes y watchlists
+
+{ " _id ": " ObjectId ficticio " , " movie_id ": " movie - uuid - demo " , " user_id ": 202 , "
+     watched_at ": "2026 -09 -23 T10 :00:00 Z " ,
+  " completed ": true , " session_id ": " session - demo " ,
+  " movie ": { " id ": " movie - uuid - demo " , " title ": " Pelicula de ejemplo " , "
+       poster_url ": " https :// ejemplo / poster . jpg " } ,
+  " user ": { " id ": 202 , " username ": " usuario_demo " , " display_name ": " Usuario Demo
+       " , " avatar_url ": " https :// ejemplo / avatar . jpg " } }
+
+                           Listing 6.3: Estructura de watch_history
+
+
+                                               7
+ASTRA CLOUD                                                                      Informe técnico
+
+
+Evidencia de volumen de datos
+    La evidencia operativa demuestra el requisito de al menos 20 000 registros por tecnologia. No
+se suman tablas distintas para alcanzar el umbral. Catalog se muestra como evidencia adicional,
+no como cumplimiento individual.
+
+              Cuadro 6.1: Evidencia de volumen por tecnologia y base de datos.
+ Tecnologia        Servicio           Tabla/coleccion         Registros      Evidencia
+ PostgreSQL        Identity           users                   50 002         Figura 6.4
+ MySQL             Community          users                   50 000         Figura 6.5
+ MongoDB           Interaction        likes                   25 000         Figura 6.6
+ PostgreSQL        Catalog            artist                  14 183         Figura 6.7
+ PostgreSQL        Catalog            movie_subtitle          10 000         Figura 6.8
+
+
+
+
+                  Figura 6.4: PostgreSQL Identity: 50 002 registros en users.
+
+
+
+
+                  Figura 6.5: MySQL Community: 50 000 registros en users.
+
+
+
+
+                Figura 6.6: MongoDB Interaction: 25 000 documentos en likes.
+
+
+
+
+                                               8
+ASTRA CLOUD                                                                      Informe técnico
+
+
+
+
+                    Figura 6.7: Catalog: 14 183 artistas; evidencia adicional.
+
+
+
+
+                  Figura 6.8: Catalog: 10 000 subtitulos; evidencia adicional.
+
+7 Comunicacin entre microservicios
+    Los servicios se comunican por HTTP/REST. Identity entrega el JWT al iniciar sesin, y
+Community, Interaction y Cinema Session revisan su firma antes de atender acciones protegidas.
+Cuando Interaction guarda una accin, consulta Catalog y Community para validar la pelcula y el
+usuario, y guarda una copia de esos datos junto con la accin. El navegador consulta peridicamente
+el estado HTTP de la sesin y aplica la respuesta recibida.
+
+                                                9
+ASTRA CLOUD                                                                       Informe técnico
+
+
+
+                             Cuadro 7.1: Integraciones principales
+ Origen                 Destino                 Protocolo          Propsito
+ Interaction            Catalog y Community     HTTP/REST          Validacin y copia de datos de
+                                                                   usuario y pelcula.
+ Cinema Session         Interaction             HTTP/REST          Estadsticas de pelcula.
+ Cliente                Cinema Session          HTTP peridico      GET /state      cada    1,5  s;
+                                                                   chat y reproduccin median-
+                                                                   te POST/PATCH.
+ Analytics              Amazon Athena           boto3              Consultas del lago de datos.
+
+
+8 Contenedorizacin
+    Para desplegar los servicios se utiliz Docker. Docker Compose inicia Catalog en el puerto
+8081, Community en 8000, Interaction en 8082, Analytics en 8002, Identity en 9000 y Cinema
+Session en 8001. Todos comparten una misma red interna. Otro Compose inicia PostgreSQL 16,
+MySQL 8.4.6 y MongoDB 7 con volmenes para conservar los datos. Los tres procesos que cargan
+informacin a S3 tambin se ejecutan como contenedores y reciben por variables de entorno sus
+conexiones y el destino en S3.
+
+9 Infraestructura AWS
+9.1 Red y cmputo
+   CloudFormation define la red en AWS: una VPC 10.0.0.0/16, dos subredes pblicas en zonas
+de disponibilidad diferentes, Internet Gateway, rutas y DNS interno. Tambin crea dos EC2 de
+produccin, una para bases de datos y otra para ingesta, ambas t3.medium con volmenes gp3 de
+20 GiB. La zona privada de Route 53 proycloud.local resuelve db.proycloud.local.
+
+9.2 Exposicin de servicios
+   Las solicitudes llegan por seis API Gateway conectados al ALB interno mediante VPC Link.
+El ALB identifica el servicio segn el puerto y enva cada solicitud a las EC2 disponibles. Cada 30
+segundos revisa la ruta /health para no dirigir trfico a un servicio que no responde.
+
+                                  Cuadro 9.1: Ruteo AWS definido
+ Servicio                  API Gateway              Listener y grupo destino
+ Identity                  IdentityAPI              9000 / TGIdentity
+ Catalog                   CatalogAPI               8081 / TGCatalog
+ Community                 CommunityAPI             8000 / TGCommunity
+ Interaction               InteractionAPI           8082 / TGInteraction
+ Analytics                 AnalyticsAPI             8002 / TGAnalytics
+ Cinema Session            CinemaAPI                8001 / TGCinema
+
+
+9.3 S3
+  La plantilla crea un bucket para los psters de pelculas. Los objetos se cifran con SSE-S3
+AES256 y tienen lectura pblica solo para ese contenido visual.
+
+10 Frontend web desplegado
+10.1 Aplicacin en AWS Amplify
+    Para ASTRA CLOUD se implement una aplicacin web desplegada en AWS Amplify. La interfaz
+se entrega por HTTPS y tiene las secciones Inicio, Explorar, Clubes, Mis pelculas, Analtica
+
+                                               10
+ASTRA CLOUD                                                                      Informe técnico
+
+
+y rbitas de reproduccin. La Figura 10.2 muestra la portada pblica, con contenido destacado,
+tendencias y accesos a una pelcula o a una experiencia compartida.
+    La consola de AWS Amplify identifica la aplicacin astra-frontend, muestra su rama de
+produccin conectada y ofrece el acceso a la URL desplegada. Esta captura demuestra la configuracin
+visible del despliegue de Amplify; no representa una consulta de Athena ni constituye evidencia
+del Glue Data Catalog.
+
+
+
+
+    Figura 10.1: Aplicacin astra-frontend y rama de produccin visibles en AWS Amplify.
+
+
+
+
+          Figura 10.2: Inicio pblico de ASTRA CLOUD desplegado en AWS Amplify.
+
+    El catlogo permite buscar pelculas y abrir su detalle. En las Figuras 10.3 y 10.4 se muestran
+la exploracin, los metadatos y acciones como crear una rbita, dar like o agregar una pelcula a la
+
+
+                                               11
+ASTRA CLOUD                                                                       Informe técnico
+
+
+watchlist. Estas acciones requieren iniciar sesin. Durante las pruebas no se realizaron cambios en
+la cuenta utilizada.
+
+
+
+
+           Figura 10.3: Exploracin del catlogo cinematogrfico desde la aplicacin web.
+
+
+
+
+      Figura 10.4: Detalle de pelcula con acciones de reproduccin, rbita, like y watchlist.
+
+10.2 Comunidad y sesin compartida
+    Desde la interfaz se pueden consultar clubes y unirse a una comunidad, como se muestra en
+la Figura 10.5. Para ver una pelcula en grupo, la pantalla de la Figura 10.6 rene el reproductor,
+
+                                               12
+ASTRA CLOUD                                                                       Informe técnico
+
+
+los participantes, el chat en vivo y los controles de reaccin. Esta parte usa Cinema Session junto
+con los datos de Community.
+
+
+
+
+              Figura 10.5: Listado de clubes y acceso a las acciones comunitarias.
+
+
+
+
+        Figura 10.6: rbita de cine con reproductor, chat en vivo y controles de la sesin.
+
+10.3 Consumo de servicios
+   La configuracin y el paquete JavaScript publicados por Amplify contienen las seis URL de API
+Gateway. La trazabilidad se verific adems contra la rama origin/feature/http-polling-chat
+
+                                               13
+ASTRA CLOUD                                                                          Informe técnico
+
+
+del frontend, compatible con los controladores de los repositorios locales. La Tabla 10.1 registra
+dos operaciones REST implementadas para cada servicio; “cdigo/bundle” indica que la operacin
+est presente tanto en el cdigo de esa rama como en el paquete desplegado, y no que se ejecut
+una operacin que modifica datos durante la revisin. El bundle define POST /api/auth/login
+y GET /api/v1/users/me; la navegacin pblica observ la carga de GET /api/catalog/movies
+en Explorar. Las pantallas de detalle, clubes y sesin estn disponibles en la interfaz, pero las
+operaciones protegidas no se marcan como ejecutadas cuando dependen de autenticacin no
+completada. La Tabla 10.1 distingue este alcance de verificacin.
+
+                  Cuadro 10.1: Trazabilidad frontend – REST – microservicio.
+ Servicio          Accin, archivo frontend y opera-   Estado de dos operaciones
+                   ciones REST
+
+ Identity          authApi.ts: iniciar sesin/registro; CUMPLE (cdigo/bundle); no se confirm login
+                   POST /api/auth/login,        POST efectivo en la UI durante esta revisin.
+                   /api/auth/register.
+ Catalog           catalogApi.ts:              inicio, CUMPLE (cdigo/bundle); explorar se observ
+                   explorar     y     rbita;      GET en la UI.
+                   /api/catalog/movies,
+                   GET/api/catalog/movies/
+                   \{id\}/session-info.
+ Community         communityApi.ts: clubes/unirse; CUMPLE (cdigo/bundle); no se ejecut la
+                   GET /api/v1/clubs,           POST mutacin.
+                   /api/v1/clubs/{id}/members.
+ Interaction       MovieDetail: likes y watchlist; CUMPLE (cdigo/bundle); no se ejecutaron
+                   GET /users/{id}/likes,         GET acciones mutables.
+                   /users/{id}/watchlist.
+ Cinema Session    useCinemaRoom.ts:              sin- CUMPLE (cdigo/bundle); tambin usa PATCH
+                   cronizacin/chat;               GET /playback; no se cre sesin de prueba.
+                   /api/v1/sessions/{id}/state,
+                   POST
+                   /api/v1/sessions/{id}/chat.
+ Analytics         analyticsService.ts:                CUMPLE (cdigo/bundle); no verificable en UI
+                   tablero;                       GET porque el login no complet.
+                   /api/v1/dashboard/kpis, GET
+                   /api/v1/genres/most-watched.
+
+
+    La navegacin pblica confirm la pantalla Explorar. El intento autorizado de iniciar sesin no
+complet una sesin visible y, por ello, las rutas protegidas, incluida Analytics, no se clasifican como
+ejecutadas en la UI. La evidencia de dos operaciones por servicio corresponde a implementacin y
+paquete desplegado; una prueba manual autenticada que complete el login sigue siendo necesaria
+para demostrar su ejecucin extremo a extremo.
+
+11 Disponibilidad y balanceo
+    La arquitectura ubica dos instancias de produccin en subredes de zonas de disponibilidad
+distintas. El balanceador revisa peridicamente si cada instancia responde y, si una deja de hacerlo,
+no le enva solicitudes hasta que vuelva a estar disponible. No se configur un Auto Scaling Group;
+la disponibilidad adicional depende de dos instancias fijas. La base de datos y los procesos de
+carga se ejecutan en una sola instancia. Cinema Session guarda el estado en la memoria de cada
+proceso, por lo que una sesin no se comparte automticamente entre las dos instancias.
+
+
+
+                                                 14
+ASTRA CLOUD                                                                             Informe técnico
+
+
+12 Carga de datos para analtica
+    Para llevar los datos a Athena se usan tres contenedores Python. ingesta-catalogo extrae
+tablas de PostgreSQL, ingesta-comunity extrae tablas de MySQL y ingesta-iteraction extrae
+colecciones de MongoDB. Cada proceso genera archivos CSV en UTF-8, limpia los saltos de lnea
+y los carga con boto3 en un bucket S3 configurable.
+
+                             Cuadro 12.1: Datos extrados hacia S3
+ Origen                     Prefijo S3              Datos
+ Catalog/PostgreSQL         resultados/             Pelculas, artistas, gneros, relaciones, videos y subt-
+                            catalogo                tulos.
+ Community/MySQL            resultados/             Usuarios, clubes, membresas, salas y participantes.
+                            comunity
+ Interaction/MongoDB        resultados/             Colecciones disponibles, incluidas reseas, likes y
+                            iteraction              watchlists.
+
+
+    Los archivos se guardan con la entidad y la fecha YYYY-MM-DD. As, Glue puede registrar su
+estructura y Athena puede consultarlos sin cargar las bases de datos principales. La ejecucin
+peridica y los procesos de Glue que detectan esa estructura se configuran al desplegar esta parte
+de la solucin.
+
+Evidencia de catalogacion con AWS Glue
+    Para registrar la estructura de los archivos almacenados en S3 se configuro el crawler
+astra-crawler en AWS Glue. El crawler utiliza como fuente s3://cloud-astra-movies/
+resultados/ y registra los metadatos en la base astra_analytics. La ejecucion mostrada
+finalizo correctamente (Succeeded) y registro la creacion de 13 tablas. Estas tablas quedan
+disponibles para las consultas realizadas posteriormente mediante Amazon Athena.
+
+
+
+
+   Figura 12.1: Ejecucion del crawler astra-crawler en AWS Glue, con 13 tablas creadas.
+
+
+
+
+                                               15
+ASTRA CLOUD                                                                        Informe técnico
+
+
+
+
+Figura 12.2: Configuracion del crawler astra-crawler con origen en Amazon S3 y destino en la
+base astra_analytics.
+
+13 Analtica con Athena
+    Analytics es una API FastAPI que consulta Amazon Athena. El servicio inicia la consulta,
+espera el resultado y devuelve las filas en formato JSON. La ubicacin de los resultados se configura
+con ATHENA_OUTPUT_BUCKET.
+    Los datos de ASTRA CLOUD se guardan en distintos servicios: el catlogo en PostgreSQL,
+la informacin social en MySQL y las interacciones en MongoDB. Los contenedores de carga los
+convierten en archivos CSV y los suben a Amazon S3. Despus, AWS Glue registra su estructura
+y Athena los consulta sin afectar las bases de datos que usa la aplicacin.
+
+13.1 Panel de analtica en la aplicacin desplegada
+    El panel de analtica est disponible en la ruta /analytics para los usuarios que iniciaron
+sesin. Desde esta seccin se consultan los indicadores generales de la plataforma: cantidad de
+pelculas, usuarios, clubes, salas e interacciones. Tambin se muestran los gneros ms vistos, los
+actores populares y los clubes con mayor actividad, como se observa en la Figura 13.1. Durante
+las pruebas notamos que el campo Rating Promedio apareca como NaN, por lo que no lo tomamos
+como un valor vlido. Este problema queda pendiente de revisin, ya que puede estar relacionado
+con el dato que recibe el frontend o con la forma en que se procesa antes de mostrarlo.
+
+
+
+
+                                                16
+ASTRA CLOUD                                                                          Informe técnico
+
+
+
+
+   Figura 13.1: Panel de analtica desplegado con KPIs y tablas de gneros, actores y clubes.
+
+13.2 Consultas analticas en AWS Athena
+Consulta 1: Engagement por gnero
+    Para saber qu gneros tienen ms participacin, reunimos los datos de genre, movie_genre,
+movie, watch_rooms e iteraction. La consulta obtiene el total de pelculas, salas, rating promedio,
+reseas y likes de cada categora.
+WITH movie_stats AS (
+    SELECT m . id as movie_id , m . rating as avg_rating ,
+          ( SELECT COUNT ( DISTINCT id )
+            FROM " astra \ _analytics " . " watch_rooms "
+            WHERE movie_id = CAST ( m . public_id AS VARCHAR ) ) as watch_rooms ,
+          ( SELECT COUNT (1) FROM " astra \ _analytics " . " iteraction "
+            WHERE movie_id = CAST ( m . public_id AS VARCHAR )
+               AND partition_0 = ’ reviews ’) as total_reviews ,
+          ( SELECT COUNT (1) FROM " astra \ _analytics " . " iteraction "
+            WHERE movie_id = CAST ( m . public_id AS VARCHAR )
+               AND partition_0 = ’ likes ’) as total_likes
+    FROM " astra \ _analytics " . " movie " m
+)
+SELECT g . name as genre_name , COUNT ( DISTINCT mg . movie_id ) as total_movies ,
+    SUM ( ms . watch_rooms ) as total_watch_rooms ,
+
+
+                                                17
+ASTRA CLOUD                                                                           Informe técnico
+
+
+    AVG ( ms . avg_rating ) as avg_rating , SUM ( ms . total_reviews ) as total_reviews ,
+    SUM ( ms . total_likes ) as total_likes
+FROM " astra \ _analytics " . " genre " g
+JOIN " astra \ _analytics " . " movie_genre " mg ON g . id = mg . genre_id
+JOIN movie_stats ms ON mg . movie_id = ms . movie_id
+GROUP BY g . name
+ORDER BY t o t a l _ w a t c h _ r o o m s DESC ;
+
+                Listing 13.1: Consulta SQL de engagement por gnero en Athena
+
+    Primero se calculan las mtricas de cada pelcula y luego se agrupan por gnero. Al ejecutar la
+consulta obtuvimos el resultado de la Figura 13.2: Drama concentra 8 567 watch rooms, 8 495
+reseas y 10 651 likes; Comedy aparece despus con 6 549 salas.
+
+
+
+
+        Figura 13.2: Resultado de la consulta de engagement por gnero en AWS Athena
+
+
+
+
+                                                  18
+ASTRA CLOUD                                                                                           Informe técnico
+
+
+Consulta 2: Participacin de usuarios en la plataforma
+    Para conocer qu tanto participan los usuarios, comparamos el total de registrados con quienes
+se han unido a clubes, participado en watch rooms o realizado reseas. Se usan las tablas users,
+memberships, watch_participants e iteraction. COUNT(DISTINCT ...) evita contar ms de
+una vez a un usuario que participa en varias acciones.
+SELECT
+    ( SELECT COUNT (1) FROM " astra \ _analytics " . " users " ) AS registered_users ,
+    ( SELECT COUNT ( DISTINCT user_id )
+      FROM " astra \ _analytics " . " memberships " ) AS users_in_clubs ,
+    ( SELECT COUNT ( DISTINCT user_id )
+      FROM " astra \ _analytics " . " w a t c h _ p a r t i c i p a n t s " ) AS users_in_watch_rooms ,
+    ( SELECT COUNT ( DISTINCT user_id )
+      FROM " astra \ _analytics " . " iteraction "
+      WHERE partition_0 = ’ reviews ’) AS reviewers ;
+
+                  Listing 13.2: Consulta SQL de participacin de usuarios en Athena
+
+    Como se observa en la Figura 13.3, Athena devolvi 50 000 usuarios registrados, 47 595 usuarios
+en clubes, 37 612 participantes en watch rooms y 16 541 revisores.
+
+
+
+
+        Figura 13.3: Resultado de la consulta de participacin de usuarios en AWS Athena
+
+Consulta 3: Mtricas de interaccin por pelcula
+    Para revisar la actividad de cada pelcula, unimos el catlogo, las interacciones y las salas de
+visualizacin. La consulta usa movie, iteraction y watch_rooms, e incluye el identificador pblico,
+el ttulo, el rating del catlogo, el promedio de puntuaciones, los likes y la cantidad de salas.
+WITH movie_metrics AS (
+    SELECT m . public_id , m . title , m . rating AS catalog_rating ,
+        ( SELECT AVG ( CAST ( score AS DOUBLE ) )
+          FROM " astra \ _analytics " . " iteraction "
+          WHERE movie_id = CAST ( m . public_id AS VARCHAR )
+             AND partition_0 = ’ reviews ’) AS avg_user_review_score ,
+        ( SELECT COUNT (1) FROM " astra \ _analytics " . " iteraction "
+          WHERE movie_id = CAST ( m . public_id AS VARCHAR )
+             AND partition_0 = ’ likes ’) AS likes_count ,
+        ( SELECT COUNT (1) FROM " astra \ _analytics " . " watch_rooms "
+          WHERE movie_id = CAST ( m . public_id AS VARCHAR ) ) AS w a t c h _ r o o m _ c o u n t
+    FROM " astra \ _analytics " . " movie " m
+)
+SELECT * FROM movie_metrics
+ORDER BY w a t c h _ r o o m _ c o u n t DESC
+LIMIT 100;
+
+             Listing 13.3: Consulta SQL de mtricas de interaccin por pelcula en Athena
+
+    La consulta ordena las pelculas por cantidad de salas y muestra las primeras 100 filas. El
+resultado de la Figura 13.4 incluye ttulos como Contracted: Phase II, Getting Even with Dad y
+Rise of the Guardians, junto con sus identificadores pblicos y mtricas.
+
+
+
+
+                                                           19
+ASTRA CLOUD                                                                         Informe técnico
+
+
+
+
+  Figura 13.4: Resultado de la consulta de mtricas de interaccin por pelcula en AWS Athena
+
+Consulta 4: Nivel de actividad de los clubes
+    Para revisar la actividad de los clubes, unimos cada club con sus miembros, las salas creadas y
+las pelculas visualizadas. La consulta usa clubs, memberships y watch_rooms; muestra el nombre
+del club, sus miembros nicos, salas, relacin de actividad y pelculas diferentes.
+SELECT c . name AS club_name ,
+    COUNT ( DISTINCT m . user_id ) AS member_count ,
+    COUNT ( DISTINCT wr . id ) AS total_watch_rooms ,
+    CAST ( COUNT ( DISTINCT wr . id ) AS DOUBLE )
+         / NULLIF ( COUNT ( DISTINCT m . user_id ) , 0) AS activity_ratio ,
+    COUNT ( DISTINCT wr . movie_id ) AS u n i q u e _ m o v i e s _ w a t c h e d
+FROM " astra \ _analytics " . " clubs " c
+LEFT JOIN " astra \ _analytics " . " memberships " m ON c . id = m . club_id
+LEFT JOIN " astra \ _analytics " . " watch_rooms " wr ON c . id = wr . club_id
+GROUP BY c . name
+ORDER BY act ivity_ ratio DESC NULLS LAST ;
+
+              Listing 13.4: Consulta SQL de nivel de actividad de clubes en Athena
+
+    Los LEFT JOIN incluyen tambin a los clubes que todava no tienen membresas o salas. NULLIF
+evita una divisin entre cero cuando un club no registra miembros. La Figura 13.5 muestra 1 712
+resultados ordenados por activity_ratio. Townsend-Wood Club 1456 registra 53 miembros, 11
+salas y una relacin de actividad de aproximadamente 0.208; Huerta-Wallace Club 307 registra 79
+miembros y 13 salas.
+
+
+
+
+                                                     20
+ASTRA CLOUD                                                                             Informe técnico
+
+
+
+
+          Figura 13.5: Resultado de la consulta de actividad de clubes en AWS Athena
+
+13.3 Vistas analticas en AWS Athena
+   Adems de las consultas, se crearon vistas en Athena para reutilizar datos de distintos compo-
+nentes de ASTRA CLOUD.
+Vista 1: Consolidado analtico de pelculas
+    La vista vw_consolidado_peliculas une el catlogo, sus gneros, las salas de visualizacin y
+las interacciones. Usa movie, movie_genre, genre, watch_rooms e iteraction para mostrar el
+identificador de pelcula, el ttulo, el gnero, el total de salas, los likes y el promedio de puntuaciones.
+CREATE OR REPLACE VIEW v w _ c o n s o l i d a d o _ p e l i c u l a s AS
+SELECT m . public_id AS movie_id , m . title , g . name AS genre ,
+    COUNT ( DISTINCT w . id ) AS total_salas ,
+    COUNT ( i_likes . user_id ) AS total_likes ,
+    AVG ( CAST ( i_reviews . score AS DOUBLE ) ) AS p r o m e d i o _ u s u a r i o s
+FROM " astra \ _analytics " . " movie " m
+LEFT JOIN " astra \ _analytics " . " movie_genre " mg ON m . id = mg . movie_id
+LEFT JOIN " astra \ _analytics " . " genre " g ON mg . genre_id = g . id
+LEFT JOIN " astra \ _analytics " . " watch_rooms " w
+    ON CAST ( m . public_id AS VARCHAR ) = w . movie_id
+LEFT JOIN " astra \ _analytics " . " iteraction " i_likes
+    ON CAST ( m . public_id AS VARCHAR ) = i_likes . movie_id
+    AND i_likes . partition_0 = ’ likes ’
+LEFT JOIN " astra \ _analytics " . " iteraction " i_reviews
+    ON CAST ( m . public_id AS VARCHAR ) = i_reviews . movie_id
+    AND i_reviews . partition_0 = ’ reviews ’
+GROUP BY m . public_id , m . title , g . name ;
+
+                     Listing 13.5: Creacin de la vista vw_consolidado_peliculas
+
+    La Figura 13.6 muestra la creacin de la vista y la Figura 13.7, su consulta. Entre las filas
+aparecen Jurassic World, Mad Max: Fury Road y Terminator Genisys, con sus gneros, salas y
+likes. Con esta vista no es necesario repetir las mismas uniones en cada consulta.
+
+
+
+
+                                                       21
+ASTRA CLOUD                                                                          Informe técnico
+
+
+
+
+            Figura 13.6: Creacin de la vista vw_consolidado_peliculas en AWS Athena
+
+
+
+
+           Figura 13.7: Consulta de la vista vw_consolidado_peliculas en AWS Athena
+
+Vista 2: Perfil social de usuarios
+    La vista vw_perfil_social_usuarios rene la participacin social de cada usuario. Relaciona
+users, memberships y watch_participants para mostrar el identificador, username, correo
+electrnico, clubes unidos y salas en las que particip.
+CREATE OR REPLACE VIEW v w _ p e r f i l _ s o c i a l _ u s u a r i o s AS
+SELECT u . id AS user_id , u . username , u . email ,
+    COUNT ( DISTINCT m . club_id ) AS clubes_unidos ,
+    COUNT ( DISTINCT wp . watch_room_id ) AS s a l a s _ p a r t i c i p a d a s
+FROM " astra \ _analytics " . " users " u
+LEFT JOIN " astra \ _analytics " . " memberships " m
+    ON CAST ( u . id AS VARCHAR ) = CAST ( m . user_id AS VARCHAR )
+LEFT JOIN " astra \ _analytics " . " w a t c h _ p a r t i c i p a n t s " wp
+    ON CAST ( u . id AS VARCHAR ) = CAST ( wp . user_id AS VARCHAR )
+GROUP BY u . id , u . username , u . email ;
+
+                       Listing 13.6: Creacin de la vista vw_perfil_social_usuarios
+
+   La Figura 13.8 muestra la creacin de la vista y la Figura 13.9, su consulta. Entre las filas
+aparece jeanmoreno_3781, con 4 clubes y 4 salas. As se puede consultar rpidamente en cuntos
+clubes y salas particip cada usuario.
+
+
+
+
+            Figura 13.8: Creacin de la vista vw_perfil_social_usuarios en AWS Athena
+
+
+
+
+                                                            22
+ASTRA CLOUD                                                                          Informe técnico
+
+
+
+
+         Figura 13.9: Consulta de la vista vw_perfil_social_usuarios en AWS Athena
+
+   El flujo de datos parte de S3, donde astra-crawler registra la estructura en la base
+astra_analytics; el modelo de la Figura 13.10 representa las relaciones entre las tablas catalo-
+gadas y posteriormente consultadas mediante Athena.
+
+
+
+
+         Figura 13.10: Modelo de datos analtico consultado mediante Amazon Athena.
+
+14 Seguridad
+14.1 Identidad y acceso
+    Identity se encarga del registro y del inicio de sesin. Las contraseas no se guardan directamente,
+sino como hashes. Al iniciar sesin, el servicio emite un JWT HS256. Community, Interaction y
+
+                                                 23
+ASTRA CLOUD                                                                        Informe técnico
+
+
+Cinema Session revisan ese token antes de atender rutas protegidas y no almacenan contraseas.
+
+14.2 Red y configuracin
+    La plantilla define grupos de seguridad para el ALB, las instancias de produccin y las bases
+de datos. PostgreSQL, MySQL y MongoDB solo aceptan conexiones desde el grupo de produccin.
+Los secretos y contraseas se reciben como parmetros NoEcho y variables de entorno. El bucket de
+psters usa cifrado SSE-S3.
+
+14.3 Consideraciones
+    Para el entorno acadmico se dejaron subredes pblicas, SSH abierto y lectura pblica solo para
+el bucket de psters. En produccin se debera restringir SSH y CORS, usar TLS y guardar los
+secretos con Secrets Manager o SSM.
+
+15 Infraestructura definida como cdigo
+   La infraestructura de ASTRA CLOUD se describe con AWS CloudFormation en
+../infrastructure/aws/proycloud-infrastructure.yaml. All se definen la red, los gru-
+pos de seguridad, las instancias EC2, el DNS privado, el ALB, los grupos destino, API Gateway
+con VPC Link y el bucket de medios. Los bloques UserData preparan las instancias con Docker
+y Docker Compose. De esta forma, la configuracin necesaria para desplegar la solucin queda
+guardada en el proyecto.
+
+16 Flujos funcionales
+16.1 Autenticacin y comunidad
+    El cliente registra una cuenta o inicia sesin en Identity y recibe un JWT. Community revisa
+el token y asocia el perfil local con el UUID sub. Despus, el usuario puede crear clubes, unirse a
+ellos y abrir salas.
+
+16.2 Catlogo e interacciones
+    Catalog entrega las pelculas y sus datos. Cuando un usuario crea una resea, like, watchlist o
+visualizacin, Interaction revisa el token, consulta los servicios necesarios y guarda la accin junto
+con los datos relacionados.
+
+16.3 Sesin y analtica
+    Cinema Session coordina una sesin temporal mediante HTTP peridico: la pgina consulta GET
+/state cada 1,5 segundos y actualiza el reproductor y el chat con la respuesta; los mensajes y
+cambios de reproduccin usan POST /chat y PATCH /playback. Los contenedores de carga extraen
+las tres bases de datos y suben archivos CSV a S3. Despus, Analytics consulta Athena para
+obtener los indicadores.
+
+17 Pruebas y validacin
+    El proyecto incluye pruebas automatizadas para Community, Interaction y Cinema Session.
+Community y Cinema Session usan Pytest para revisar rutas, permisos y flujos de salas. Interaction
+usa node:test, Supertest y mongodb-memory-server, por lo que puede probar sus rutas sin una
+instancia externa de MongoDB. Los servicios tambin tienen rutas de salud que usan la integracin
+y el balanceo. Interaction incluye npm run seed, un script que puede ejecutarse varias veces sin
+duplicar los datos que ya existen. Por defecto genera 20 000 documentos para reseas, watchlists e
+historial, y 25 000 para likes. Las variables SEED_* permiten ajustar estos escenarios.
+
+
+                                                24
+ASTRA CLOUD                                                                       Informe técnico
+
+
+18 Consideraciones de costos
+   El costo depende principalmente de las cuatro instancias EC2 t3.medium, EBS, ALB, API
+Gateway, S3 y el volumen de datos que procesa Athena. Glue y la transferencia de datos tambin
+pueden generar cargos cuando se habiliten. Como Athena consulta los archivos cuando se necesita,
+no es necesario mantener un clster analtico permanente.
+
+19 Limitaciones actuales
+      Cinema Session guarda el estado en memoria local. Para compartirlo entre ms rplicas se
+      necesitara un servicio como Redis.
+
+     JWT HS256 usa un secreto comn en los servicios que validan los tokens.
+
+      La plantilla no incluye un Auto Scaling Group ni alta disponibilidad para la instancia de
+      base de datos.
+
+      El proceso genera y carga archivos CSV, pero la frecuencia de ejecucin y los recursos de
+      Glue se deben configurar al desplegarlo.
+
+     El cdigo fuente del frontend est incluido en sources/frontend/; la configuracin completa
+     de AWS Amplify no est incluida, aunque se conserva evidencia del paquete y de la aplicacin
+     web desplegada.
+
+20 Mejoras futuras
+    Como mejoras futuras, se podra agregar Redis para compartir el estado de Cinema Session, un
+servicio administrado de secretos, monitoreo y alertas con CloudWatch, respaldos, Auto Scaling
+Groups y CI/CD con pruebas y anlisis de imgenes. En la parte analtica, los procesos de Glue que
+detectan la estructura de los archivos, las particiones y una programacin de cargas permitiran
+ejecutar el proceso de forma peridica.
+
+21 Conclusiones
+    ASTRA CLOUD permiti implementar una plataforma cinematogrfica organizada en seis
+microservicios con responsabilidades diferenciadas. Identity, Catalog, Community, Interaction,
+Cinema Session y Analytics colaboran mediante interfaces definidas, lo que mantiene separadas
+la autenticacin, el catlogo, la interaccin social, las sesiones compartidas y la consulta analtica.
+    La solucin adopta persistencia polglota: PostgreSQL respalda las cuentas y el catlogo, MySQL
+concentra la informacin comunitaria y MongoDB conserva las interacciones. Esta eleccin responde
+al tipo de informacin administrada por cada servicio y se complementa con Docker y Docker
+Compose para reproducir los entornos de ejecucin.
+    El despliegue se describe con CloudFormation e integra VPC, instancias EC2, API Gateway,
+VPC Link, ALB y S3. Adems, el flujo PostgreSQL/MySQL/MongoDB → CSV → S3 → Athena
+permite analizar los datos extrados sin trasladar esa carga a las bases operativas. En conjunto, el
+proyecto demuestra la integracin de servicios, persistencia, despliegue cloud y analtica dentro de
+una arquitectura coherente para el alcance acadmico planteado.
+
+22 ANEXOS
+
+
+
+                                                25
+ASTRA CLOUD                                                                    Informe técnico
+
+
+22.1 Anexo A. Repositorios del proyecto
+    La Tabla 22.1 rene los repositorios cuyos remotos Git fueron verificados en los componentes
+disponibles del proyecto.
+
+                    Cuadro 22.1: Repositorios pblicos verificados de ASTRA
+                    CLOUD.
+
+ Componente                  Tecnologa                Repositorio GitHub
+ Identity Service            Python, FastAPI          https://github.com/dado4cs/
+                                                      identity-service
+ Catalog Service             Java, Spring Boot        https://github.com/Pepe17xd/backend_
+                                                      catalogo
+ Community Service           Python, FastAPI          https://github.com/Pepe17xd/backend_
+                                                      comunity
+ Interaction Service         Node.js, Express         https://github.com/dado4cs/
+                                                      interaction-service
+ Cinema Session Service      Python, FastAPI          https://github.com/Jhynfe/
+                                                      cinema-session-service
+ Analytics Service           Python, FastAPI          https://github.com/dado4cs/
+                                                      data-analitica-ms-cloud
+ Frontend web                React                    https://github.com/Pepe17xd/
+                                                      Frontend_Cloud
+
+
+22.2 Anexo B. Aplicacin web desplegada
+   La siguiente direccin corresponde a la aplicacin web oficial de ASTRA CLOUD desplegada en
+AWS Amplify:
+https://feature-http-polling-chat.dgg2xrxydvbjy.amplifyapp.com/
+
+Bibliografía
+[1] Amazon Web Services. Amazon athena user guide, 2026.
+
+[2] Docker Inc. Docker documentation, 2026.
+
+[3] FastAPI. Fastapi documentation, 2026.
+
+[4] Mongoose. Mongoose documentation, 2026.
+
+[5] PostgreSQL Global Development Group. Postgresql documentation, 2026.
+
+[6] Proyecto ASTRA CLOUD. Astra cloud source repositories, 2026.
+
+[7] VMware. Spring boot reference documentation, 2026.
+
+
+
+
+                                                 26
+

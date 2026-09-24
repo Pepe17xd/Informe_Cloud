@@ -1,8 +1,8 @@
-\chapter{Limitaciones actuales}
+﻿\chapter{Limitaciones actuales}
 \begin{itemize}
-\item Cinema Session guarda el estado en memoria local. Para compartirlo entre más réplicas se necesitaría un servicio como Redis.
+\item Cinema Session guarda el estado en memoria local. Para compartirlo entre más rplicas se necesitara un servicio como Redis.
 \item JWT HS256 usa un secreto común en los servicios que validan los tokens.
 \item La plantilla no incluye un Auto Scaling Group ni alta disponibilidad para la instancia de base de datos.
 \item El proceso genera y carga archivos CSV, pero la frecuencia de ejecución y los recursos de Glue se deben configurar al desplegarlo.
-\item El código fuente del frontend y la configuración de AWS Amplify no están incluidos en este proyecto, aunque la aplicación web desplegada sigue disponible.
+\item El código fuente del frontend está incluido en \path{sources/frontend/}; la configuración completa de AWS Amplify no está incluida, aunque se conserva evidencia del paquete y de la aplicación web desplegada.
 \end{itemize}
